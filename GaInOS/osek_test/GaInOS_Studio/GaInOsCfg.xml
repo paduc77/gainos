@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GaInOsCfg>
+	<GaInOsGeneralCfg>
+		<GaInOsCpuType>Tri-Core</GaInOsCpuType>
+		<GaInOsMaxIpl>7</GaInOsMaxIpl>
+		<GaInOsMaxPriority>63</GaInOsMaxPriority>
+		<GaInOsConfCls>ECC1</GaInOsConfCls>
+		<GaInOsSchedPolicy>FULL_PREEMPTIVE_SCHEDULE</GaInOsSchedPolicy>
+		<GaInOsStatusLevel>OS_STATUS_STANDARD</GaInOsStatusLevel>
+		<GaInOsUseAlarm>False</GaInOsUseAlarm>
+		<GaInOsUseInRes>False</GaInOsUseInRes>
+		<GaInOsUseRes>True</GaInOsUseRes>
+		<GaInOsIsr2UseRes>False</GaInOsIsr2UseRes>
+	</GaInOsGeneralCfg>
+
+	<GaInOsTaskCfg>
+		<GaInOsTask>
+			<TaskName>vTask1</TaskName>
+			<TaskType>EXTEND_TASK</TaskType>
+			<TaskPriority>7</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+				<TaskEvent name='vTask1Event1' mask='0x1'></TaskEvent>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTask2</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>2</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTask3</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>3</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTask4</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>4</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTask5</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>5</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTask6</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>6</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>False</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+		<GaInOsTask>
+			<TaskName>vTaskIdle</TaskName>
+			<TaskType>BASIC_TASK</TaskType>
+			<TaskPriority>0</TaskPriority>
+			<TaskStackSize>512</TaskStackSize>
+			<TaskMaxActCnt>1</TaskMaxActCnt>
+			<TaskAutoStart>True</TaskAutoStart>
+			<TaskPreemtable>True</TaskPreemtable>
+			<TaskWithInRes>False</TaskWithInRes>
+			<TaskInResName>None</TaskInResName>
+			<TaskEventList>
+			</TaskEventList>
+		</GaInOsTask>
+	</GaInOsTaskCfg>
+	<GaInOsResourceCfg>
+		<GaInOsRes name='vRes1' ceilprio='25'></GaInOsRes>
+	</GaInOsResourceCfg>
+
+	<GaInOsInternalResourceCfg>
+	</GaInOsInternalResourceCfg>
+
+	<GaInOsCounterCfg>
+		<GaInOsCounter>
+			<CounterName>vCounter1</CounterName>
+			<CounterMaxAllowValue>65535</CounterMaxAllowValue>
+			<CounterMinCycle>1</CounterMinCycle>
+			<CounterTickPerBase>1</CounterTickPerBase>
+		</GaInOsCounter>
+		<GaInOsCounter>
+			<CounterName>vCounter2</CounterName>
+			<CounterMaxAllowValue>65535</CounterMaxAllowValue>
+			<CounterMinCycle>1</CounterMinCycle>
+			<CounterTickPerBase>1</CounterTickPerBase>
+		</GaInOsCounter>
+	</GaInOsCounterCfg>
+
+	<GaInOsAlarmCfg>
+	</GaInOsAlarmCfg>
+
+	<GaInOsScheduleTableCfg>
+		<GaInOsScheduleTable name='vSchedTbl1' repeatable='True' counter='vCounter1' autostartable='True' autostarttype='RELATIVE' absrelvalue='50' finaldelay='150' strategy='EXPLICIT' max_advance='5' max_retard='10' precision='1'>
+			<ExpiryPoint offset='250'>
+				<Action>ActivateTask(vTask1)</Action>
+			</ExpiryPoint>
+			<ExpiryPoint offset='450'>
+				<Action>ActivateTask(vTask2)</Action>
+			</ExpiryPoint>
+			<ExpiryPoint offset='650'>
+				<Action>ActivateTask(vTask3)</Action>
+			</ExpiryPoint>
+		</GaInOsScheduleTable>
+		<GaInOsScheduleTable name='vSchedTbl2' repeatable='True' counter='vCounter1' autostartable='True' autostarttype='ABSOLUTE' absrelvalue='100' finaldelay='150' strategy='EXPLICIT' max_advance='1' max_retard='4' precision='2'>
+			<ExpiryPoint offset='300'>
+				<Action>ActivateTask(vTask4)</Action>
+			</ExpiryPoint>
+			<ExpiryPoint offset='500'>
+				<Action>ActivateTask(vTask5)</Action>
+			</ExpiryPoint>
+			<ExpiryPoint offset='700'>
+				<Action>ActivateTask(vTask6)</Action>
+			</ExpiryPoint>
+		</GaInOsScheduleTable>
+	</GaInOsScheduleTableCfg>
+
+</GaInOsCfg>
