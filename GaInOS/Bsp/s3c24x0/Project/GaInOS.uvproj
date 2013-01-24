@@ -211,7 +211,7 @@
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>1</StupSel>
-            <useUlib>1</useUlib>
+            <useUlib>0</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
             <RoSelD>0</RoSelD>
@@ -282,7 +282,7 @@
               <OCR_RVCT1>
                 <Type>1</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x2000000</Size>
+                <Size>0x1000000</Size>
               </OCR_RVCT1>
               <OCR_RVCT2>
                 <Type>1</Type>
@@ -366,7 +366,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>..\vPort\vBoot</IncludePath>
             </VariousControls>
           </Aads>
           <LDads>
@@ -377,7 +377,7 @@
             <RepFail>1</RepFail>
             <useFile>0</useFile>
             <TextAddressRange>0x00000000</TextAddressRange>
-            <DataAddressRange>0x40000000</DataAddressRange>
+            <DataAddressRange>0x30000000</DataAddressRange>
             <ScatterFile>.\script\runinFlash.sct</ScatterFile>
             <IncludeLibs></IncludeLibs>
             <IncludeLibsPath></IncludeLibsPath>
@@ -389,22 +389,17 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>boot</GroupName>
+          <GroupName>vBoot</GroupName>
           <Files>
             <File>
-              <FileName>start_rvds.S</FileName>
+              <FileName>2440init.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\vPort\start_rvds.S</FilePath>
+              <FilePath>..\vPort\vBoot\2440init.s</FilePath>
             </File>
             <File>
-              <FileName>vPort.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\vPort\vPort.c</FilePath>
-            </File>
-            <File>
-              <FileName>vPort_Rvds.S</FileName>
-              <FileType>2</FileType>
-              <FilePath>..\vPort\vPort_Rvds.S</FilePath>
+              <FileName>Option.inc</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\vPort\vBoot\Option.inc</FilePath>
             </File>
           </Files>
         </Group>
@@ -505,6 +500,21 @@
               <FileName>CfgSchedTbl.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\osek_test\GaInOS_Studio\CfgSchedTbl.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>vPort</GroupName>
+          <Files>
+            <File>
+              <FileName>vPort.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\vPort\vPort.c</FilePath>
+            </File>
+            <File>
+              <FileName>vPort_Rvds.S</FileName>
+              <FileType>2</FileType>
+              <FilePath>..\vPort\vPort_Rvds.S</FilePath>
             </File>
           </Files>
         </Group>
