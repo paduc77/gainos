@@ -3,11 +3,13 @@
 #include "Serial.h"
 
 int main(void) {
-
+    /* Here must be in supervisor mode*/
     CpuFrequencyInit();
+    /*make run in ram */
+    init_sys_mmu();
+    start_mmu();
     Sci_Init();
-    printk("Start GaInOS,Welcome,Parai!\r\n");
-    __asm("SWI 0");
+    printk("Welcome to GaInOS!\r\n");
     StartOS(OSDEFAULTAPPMODE);
     for(;;) {    
     }    
