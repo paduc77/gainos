@@ -1,6 +1,7 @@
 #include "longlong.h"
 //#ifdef __GNUC__
-#if   (defined __GNUC__)  || (defined _APP_MC9S12_ ) || (defined _APP_MPC56XX_)
+#if   (defined __GNUC__)  || (defined _APP_MC9S12_ ) || (defined _APP_MPC56XX_) \
+    || (defined _APP_XC23XX_)
 #else
 longlong	ltoll( long a )			/* (longlong)a */
 {
