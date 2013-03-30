@@ -2,23 +2,19 @@
 
 const T_CMTX OsekResourceTable[cfgOSEK_RESOURCE_NUM]=
 {
-	GenResourceCreInfo(7),	/* vRes0 */
-	GenResourceCreInfo(8),	/* vRes1 */
-	GenResourceCreInfo(4),	/* vResSerial */
+	GenResourceCreInfo(1),	/* vRes0 */
 };
 
 /* Generate Task Stack */
 GenTaskStack(vTask0,512);
 GenTaskStack(vTask1,512);
 GenTaskStack(vTask2,512);
-GenTaskStack(vTask3,512);
 /* Generate Task Create Information */
 const T_CTSK OsekTaskTable[cfgOSEK_TASK_NUM]=
 {
 	GenTaskCreInfo(vTask0,1,NULL),
 	GenTaskCreInfo(vTask1,2,ID_vTask1Event),
-	GenTaskCreInfo(vTask2,3,ID_vTask2Event),
-	GenTaskCreInfo(vTask3,4,NULL),
+	GenTaskCreInfo(vTask2,3,NULL),
 };
 /* Is Task auto-startable */
 const BOOL OsekTaskAuotStartable[cfgOSEK_TASK_NUM]=
@@ -26,40 +22,45 @@ const BOOL OsekTaskAuotStartable[cfgOSEK_TASK_NUM]=
 	TRUE,	/* vTask0 */
 	TRUE,	/* vTask1 */
 	TRUE,	/* vTask2 */
-	TRUE,	/* vTask3 */
 };
+#include "Can.h"
 TASK(vTask0)
 {
-	(void)tm_putstring((UB*)"vTask0 is running.\r\n");
-	(void)tm_printf("stacd = %d,exinf = %d.\r\n",stacd,(UINT)exinf);
-//	(void)ActivateTask(ID_vTask2);
+#if 1
+    Can_PduType pdu;
+    static char* sduData0 = "Parai"; /* 5 */
+    static char* sduData1 = "Hello"; /* 5 */
+    static char* sduData2 = "World"; /* 5 */
+    
+    pdu.id=125;
+    pdu.length=5;
+    pdu.swPduHandle=1234;
+	tm_putstring((UB*)"vTask0 is running.\r\n");
+	Can_Init(&Can_ConfigData);
+	Can_SetControllerMode(CAN_CTRL_1,CAN_T_START);
+	for(;;)
+	{
+	    pdu.sdu= sduData0;
+	    while(CAN_BUSY == Can_Write(CAN0_HTH,&pdu));
+	    pdu.sdu= sduData1;
+	    while(CAN_BUSY == Can_Write(CAN0_HTH,&pdu));
+	    pdu.sdu= sduData2;
+	    while(CAN_BUSY == Can_Write(CAN0_HTH,&pdu)); 
+	    DelayTask(3000); 
+	}
+#endif
 	(void)TerminateTask();
 }
 
 TASK(vTask1)
 {
-	(void)tm_putstring((UB*)"vTask1 is running.\r\n");
-	(void)tm_printf("stacd = %d,exinf = %d.\r\n",(int)stacd,(int)exinf);
-	(void)tm_putstring((UB*)"SetRelAlarm().\r\n");
-	(void)SetRelAlarm(ID_vAlarm0, 500,300);
-	(void)SetRelAlarm(ID_vAlarm1,1000,300);
-	(void)SetRelAlarm(ID_vAlarm2,1500,300);
-	(void)TerminateTask();
-}
-TASK(vTask2)
-{   
-	(void)tm_putstring((UB*)"vTask2 is running.\r\n");
-	(void)tm_printf("stacd = %d,exinf = %d.\r\n",stacd,(int)exinf);
-	(void)WaitEvent(vTask2Event0);
-	(void)ClearEvent(vTask2Event0);
+	tm_putstring((UB*)"vTask1 is running.\r\n");
 	(void)TerminateTask();
 }
 
-TASK(vTask3)
+TASK(vTask2)
 {
-	(void)tm_putstring((UB*)"vTask3 is running.\r\n");
-	(void)tm_printf("stacd = %d,exinf = %d.\r\n",stacd,(int)exinf);
-//	(void)SetEvent(ID_vTask2,vTask2Event0);
+	tm_putstring((UB*)"vTask2 is running.\r\n");
 	(void)TerminateTask();
 }
 
@@ -69,24 +70,14 @@ const FP OsekAlarmHandlerTable[cfgOSEK_ALARM_NUM]=
 {
 	AlarmCallBackEntry(vAlarm0),
 	AlarmCallBackEntry(vAlarm1),
-	AlarmCallBackEntry(vAlarm2),
 };
 ALARMCALLBACK(vAlarm0)
 {
-	(void)tm_putstring((UB*)"vAlarm0 cbk is running.\r\n");
-	(void)tk_sta_tsk(ID_vTask3,ID_vTask3);
-	(void)tk_sta_tsk(ID_vTask2,ID_vTask2);
+	(void)tk_sta_tsk(ID_vTask1,ID_vTask1);
 }
 
 ALARMCALLBACK(vAlarm1)
 {
-	(void)tm_putstring((UB*)"vAlarm1 cbk is running.\r\n");
-	(void)tk_sta_tsk(ID_vTask0,ID_vTask0);
-}
-
-ALARMCALLBACK(vAlarm2)
-{
-	(void)tm_putstring((UB*)"vAlarm2 cbk is running.\r\n");
-	(void)SetEvent(ID_vTask2,vTask2Event0);
+	(void)SetEvent(ID_vTask1,vTask1Event0);
 }
 
