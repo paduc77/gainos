@@ -13,12 +13,14 @@ extern TASK(vTask1);
 /* #####################  EVENT ########################## */
 #define cfgOSEK_EVENTFLAG_NUM 0
 /* #####################  ALARM ########################## */
-#define cfgOSEK_ALARM_NUM 1
+#define cfgOSEK_ALARM_NUM 2
 extern ID OsekAlarmIdTable[cfgOSEK_ALARM_NUM];
 extern UB OsekAlarmTypeTable[cfgOSEK_ALARM_NUM];
 extern const FP OsekAlarmHandlerTable[cfgOSEK_ALARM_NUM];
 #define ID_vAlarm0		(0)
+#define ID_vAlarm1		(1)
 extern ALARMCALLBACK(vAlarm0);
+extern ALARMCALLBACK(vAlarm1);
 /*  ####################  RESOURCE ####################### */
 #define cfgOSEK_RESOURCE_NUM 2
 extern const T_CMTX OsekResourceTable[cfgOSEK_RESOURCE_NUM];

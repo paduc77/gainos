@@ -22,34 +22,9 @@ const BOOL OsekTaskAuotStartable[cfgOSEK_TASK_NUM]=
 	TRUE,	/* vTask1 */
 };
 
-#include "Can.h"
 TASK(vTask0)
 {
-#if 1
-    Can_PduType pdu;
-    static char* sduData0 = "Parai"; /* 5 */
-    static char* sduData1 = "Hello"; /* 5 */
-    static char* sduData2 = "World"; /* 5 */
-    
-    pdu.id=125;
-    pdu.length=5;
-    pdu.swPduHandle=1234;
 	tm_putstring((UB*)"vTask0 is running.\r\n");
-	Can_Init(&Can_ConfigData);
-	Can_SetControllerMode(CAN_CTRL_0,CAN_T_START);
-	Can_SetControllerMode(CAN_CTRL_1,CAN_T_START);
-	Can_SetControllerMode(CAN_CTRL_4,CAN_T_START);
-	for(;;)
-	{
-	    pdu.sdu= sduData0;
-	    while(CAN_BUSY == Can_Write(CAN_CTRL_0_vCanHohTx,&pdu));
-	    pdu.sdu= sduData1;
-	    while(CAN_BUSY == Can_Write(CAN_CTRL_1_vCanHohTx,&pdu));
-	    pdu.sdu= sduData2;
-	    while(CAN_BUSY == Can_Write(CAN_CTRL_4_vCanHohTx,&pdu));
-	    DelayTask(3000); 
-	}
-#endif
 	(void)TerminateTask();
 }
 
@@ -64,9 +39,15 @@ UB OsekAlarmTypeTable[cfgOSEK_ALARM_NUM];
 const FP OsekAlarmHandlerTable[cfgOSEK_ALARM_NUM]=
 {
 	AlarmCallBackEntry(vAlarm0),
+	AlarmCallBackEntry(vAlarm1),
 };
 ALARMCALLBACK(vAlarm0)
 {
 	tm_putstring((UB*)"vAlarm0 cbk is running.\r\n");
+}
+
+ALARMCALLBACK(vAlarm1)
+{
+	tm_putstring((UB*)"vAlarm1 cbk is running.\r\n");
 }
 
