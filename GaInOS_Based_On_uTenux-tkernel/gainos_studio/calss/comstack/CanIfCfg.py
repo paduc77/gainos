@@ -43,39 +43,65 @@
 /* | Email:  | parai@foxmail.com | */
 /* |---------+-------------------| */
 """
-from PyQt4 import QtCore, QtGui
-import sys, os
 
-def gappendpath():
-    for dir in sys.path:
-        if(os.path.isfile(dir+'/main.py')
-           and os.path.isdir(dir+'/codegen')
-           and os.path.isdir(dir+'/ui_forms')):
-            break;
-    print dir;
-    sys.path.append(dir+'/ui_forms');
-    sys.path.append(dir+'/ui_forms/Common');
-    sys.path.append(dir+'/ui_forms/mc9s12dp512');
-    sys.path.append(dir+'/ui_forms/comstack');
-    sys.path.append(dir+'/ui_calss');
-    sys.path.append(dir+'/ui_calss/mc9s12dp512');
-    sys.path.append(dir+'/ui_calss/comstack');
-    sys.path.append(dir+'/ui_calss/Common');
-    sys.path.append(dir+'/arxml');
-    sys.path.append(dir+'/calss');
-    sys.path.append(dir+'/calss/mc9s12dp512');
-    sys.path.append(dir+'/calss/comstack');
-    sys.path.append(dir+'/codegen');
-    sys.path.append(dir+'/Common');
+from PyQt4.QtGui import QDialog
+from PyQt4.QtCore import pyqtSignature
+from PyQt4.QtGui import QTreeWidgetItem, QMessageBox
+from PyQt4.QtCore import QStringList,QString
+from Common import *
+class CanIfGeneral():
+    def __init__(self):
+        self.DevErrorDetection=False;
+        self.VersionInfoApi = False;
+        self.DlcCheck=True;
+        self.RuntimePduConfig=False;
+        self.BusoffNotification='CanIf_User_BusoffNotification';
+        self.ErrorNotification='CanIf_User_ErrorNotification';
+        self.SoftwareFilterType='CANIF_SOFTFILTER_TYPE_MASK';
+class CanIfPdu():
+    def __init__(self, name):
+        self.name=name;
+  
+class CanIfHth():
+    def __init__(self, name):
+        self.name=name;
+        self.type='hth';
+        self.pduList=[];
 
-def main(argc, argv):
-    from GaInOsStudio import wMainClass
-    app = QtGui.QApplication(argv);
-    wMainWin = wMainClass(argc,argv);
-    wMainWin.show();
-    sys.exit(app.exec_());
+class CanIfHrh():
+    def __init__(self, name):
+        self.name=name;
+        self.type='hrh';
+        self.pduList=[];
 
-if __name__ == "__main__":
-    gappendpath();
-    main(len(sys.argv),sys.argv);
+class CanIfChannel():
+    def __init__(self, name):
+        self.name=name;
+        self.hthList=[];
+        self.hrhList=[];
 
+class CanIfConfig():
+    def __init__(self):
+        self.General=CanIfGeneral();
+        self.channelList=[];
+
+from CanIf_Dlg import *
+class CanIfObj():
+    def __init__(self):
+        self.cfg=CanIfConfig();
+        print "init CanIf Object"
+
+    def toString(self):
+        str='  Double Clicked to Start to Configure the Can Interface!\n';
+        return str;
+
+    def show(self):
+        dlg=CanIf_Dlg(self.cfg);
+        dlg.exec_();
+    
+    def save(self, fp):
+        """保存配置信息"""
+        return;
+        
+    def doParse(self, arxml):
+        return;

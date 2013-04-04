@@ -45,17 +45,20 @@
 /* |---------+-------------------| */
 """
 from Can_MC9S12DP512 import *
+from CanIfCfg import *
+from EcuCcfg import *
 from Common import *
 
 ArObjDict_MC9S12DP512={'Adc':UnimplementError, 
                        'Can':CanObj_MC9S12DP512, 
-                       'CanIf':UnimplementError, 
+                       'CanIf':CanIfObj, 
                        'CanNm':UnimplementError,
                        'CanTp':UnimplementError,
                        'CanSm':UnimplementError,
                        'Com':UnimplementError,
                        'Dio':UnimplementError,
                        'Eep':UnimplementError,
+                       'EcuC':EcuCObj, 
                        'Fls':UnimplementError,
                        'Gpt':UnimplementError,
                        'Icu':UnimplementError,
