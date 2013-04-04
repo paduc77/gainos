@@ -20,8 +20,8 @@
  * URL:      https://github.com/parai
  * Email:    parai@foxmail.com
  * Name:     parai(Wang Fan)
- * from Date:2013.04.02 22:27:00 to $Date: 2013-04-02 14:36:05 $
- * $Revision: 1.2 $
+ * from Date:2013.04.02 22:27:00 to $Date: 2013-04-04 08:00:15 $
+ * $Revision: 1.3 $
  */
 /** @addtogroup CanIf CAN Interface
  *  @{ */
@@ -114,7 +114,7 @@ typedef struct {
 
 	/** Defines the parameters required for configuraing multiple
 	 *  CANID ranges for a given same HRH. */
-	const CanIf_HrhRangeConfigType *CanIfHrhRangeConfig;
+	//const CanIf_HrhRangeConfigType *CanIfHrhRangeConfig;
 
   /** End Of List. Set to TRUE if this is the last object in the list. */
   boolean CanIf_Arc_EOL;
