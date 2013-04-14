@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""
 /* Copyright 2012, Fan Wang(Parai)
  *
  * This file is part of GaInOS.
@@ -43,40 +40,14 @@
 /* |---------+-------------------| */
 /* | Email:  | parai@foxmail.com | */
 /* |---------+-------------------| */
-"""
+#ifndef _CPU_H_H_H_
+#define _CPU_H_H_H_
+#include "Std_Types.h"
+
+#define Irq_Restore(_mask) EI(_mask)
+
+#define Irq_Save(_mask)    DI(_mask)
 
 
-def TRUE(tr):
-    if(tr==True):
-        return 'TRUE';
-    else:
-        return 'FALSE';
 
-def bool(s):
-    if(s=='True'):
-        return True;
-    else:
-        return False;
-
-def gSTD_ON(s):
-    if(s==True):
-        return 'STD_ON';
-    else:
-        return 'STD_OFF';
-    
-class UnimplementError():
-    def __init__(self):
-        print 'Un Implement Error!'
-
-    def toString(self):
-        str='  Sorry,Not implemented!\n'
-        return str;
-
-    def show(self, cfg):
-        print "Gui Unimplemented!"
-    
-    def save(self, fp):
-        return;
-    
-    def doParse(self, arxml):
-        return;
+#endif /* _CPU_H_H_H_ */
