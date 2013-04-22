@@ -32,21 +32,21 @@ const BOOL OsekTaskAuotStartable[cfgOSEK_TASK_NUM]=
 #include "CanIf.h"
 #include "Can.h"
 #include "Com.h"
-#include "string.h"
+
 TASK(vTaskInit)
 {
 	tm_putstring((UB*)"vTaskInit is running.\r\n");
 	
 	//Com 模块初始化
-	//Can_Init(&Can_ConfigData);
+	Can_Init(&Can_ConfigData);
 	CanIf_Init(&CanIf_Config);
 	CanTp_Init();
 	PduR_Init(&PduR_Config);
 	Com_Init(&ComConfiguration);
 	
     //Com 通道启动	
-	//CanIf_SetControllerMode(vCanIf_Channel0,CANIF_CS_STARTED);
-	//CanIf_SetControllerMode(vCanIf_Channel1,CANIF_CS_STARTED);
+	CanIf_SetControllerMode(vCanIf_Channel0,CANIF_CS_STARTED);
+	CanIf_SetControllerMode(vCanIf_Channel1,CANIF_CS_STARTED);
 	
 	// Make sure that the right PDU-groups are ready for communication.
 	Com_IpduGroupStart(vCom_IPduGrp0, 0);
@@ -60,11 +60,7 @@ TASK(vTaskInit)
 	(void)ActivateTask(ID_vTaskReceiver);
 	(void)TerminateTask();
 }
-boolean IncommingFreqReq(PduIdType PduId, const uint8 *IPduData)
-{
-    tm_putstring((UB*)"IncommingFreqReq() is running.\r\n");
-    return FALSE;
-}
+
 TASK(vTaskMainFunction)
 {
 	tm_putstring((UB*)"vTaskMainFunction is running.\r\n");
@@ -95,7 +91,7 @@ TASK(vTaskSender)
 	    tm_printf("Ack From vTaskReceiver is %d.\r\n",ack);
 	    Singal1[0]++;
 	    Singal1[1]++;
-	    Singal1[2]++;	    
+	    Singal1[2]++;
 	}
 	(void)TerminateTask();
 }
@@ -112,7 +108,7 @@ TASK(vTaskReceiver)
 	    tm_printf("Received Signal is [%d,%d,%d].\r\n\r\n",Singal1[0],Singal1[1],Singal1[2]);
 	    Com_SendSignal(vCom_IPdu2_Signal0,&ack);
 	    Com_TriggerIPduSend(vCom_IPdu2);
-	    DelayTask(250*10); //沉睡10s 
+	    DelayTask(250*10); //沉睡10s
 	    ack++;
 	}
 	(void)TerminateTask();
