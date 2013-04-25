@@ -6,7 +6,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ *             
  * Linking GaInOS statically or dynamically with other modules is making a
  * combined work based on GaInOS. Thus, the terms and conditions of the GNU
  * General Public License cover the whole combination.
@@ -14,7 +14,7 @@
  * In addition, as a special exception, the copyright holders of GaInOS give
  * you permission to combine GaInOS program with free software programs or
  * libraries that are released under the GNU LGPL and with independent modules
- * that communicate with GaInOS solely through the GaInOS defined interface.
+ * that communicate with GaInOS solely through the GaInOS defined interface. 
  * You may copy and distribute such a system following the terms of the GNU GPL
  * for GaInOS and the licenses of the other code concerned, provided that you
  * include the source code of that other code when and as the GNU GPL requires
@@ -25,7 +25,7 @@
  * whether to do so. The GNU General Public License gives permission to release
  * a modified version without this exception; this exception also makes it
  * possible to release a modified version which carries forward this exception.
- *
+ * 
  * GaInOS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -40,12 +40,20 @@
 /* |---------+-------------------| */
 /* | Email:  | parai@foxmail.com | */
 /* |---------+-------------------| */
+#ifndef TM_PRINTF_H_H
+#define TM_PRINTF_H_H
 
-#include "Det.h"
-#include "tm_printf.h"
-void Det_ReportError(uint16 ModuleId, uint8 InstanceId, uint8 ApiId, uint8 ErrorId)
-{
-	tm_printf("Det Error: ModuleId=%d, InstanceId=%d, ApiId=%d, ErrorId=%d\n", \
-			ModuleId, InstanceId, ApiId, ErrorId);
-}
+#include <stdarg.h>
 
+#if 0
+#  define TM_PRINTF_PRECISION   /* 是否打印小数 */
+#  define TM_PRINTF_LONGLONG    /* 是否打印长整型 */
+#  define TM_PRINTF_SPECIAL
+#  define TM_TEST_ON_PC
+#endif
+
+/* 每次最多打印127个字符 */
+#define TM_PRINTF_BUF_SIZE 128
+void tm_printf(char *fmt, ...);
+
+#endif
