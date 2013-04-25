@@ -32,7 +32,7 @@
  * NOTE!!!!
  * Do not use this in a header file. Should be used in the *.c file like this.
  *
- * #define USE_DEBUG_PRINTF
+ * #define USE_DEBUG
  * #include "ardebug.h"
  *
  * Macro's for debugging and tracing
@@ -47,7 +47,7 @@
  *
  * Example:
  * #define DEBUG_LVL	DEBUG_HIGH
- * DEBUG(DEBUG_HIGH,"Starting GPT");
+ * DEBUG_PRINT0(DEBUG_HIGH,"Starting GPT");
  *
  * TRACE
  *   TODO:
@@ -69,8 +69,13 @@
 #define CH_PROC		1
 
 #ifdef USE_DEBUG
+#if(MICRO_TENUX_VERSION == 140)
 #include <tm/tmonitor.h>
 #include <tm/tm_printf.h>
+#else if(MICRO_TENUX_VERSION == 150)
+#  include <tm/tm_monitor.h>
+#  include "tm_printf.h"
+#endif  /* MICRO_TENUX_VERSION */
 #endif  /*USE_DEBUG*/
 
 #ifdef  USE_DEBUG
