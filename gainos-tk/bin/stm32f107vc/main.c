@@ -1,6 +1,7 @@
 #include "stm32f10x.h"
 #include <stdio.h>
 #include "Os.h"
+#include "vPort.h"
 
 #ifdef __GNUC__
   /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf

@@ -1,3 +1,23 @@
+/* Copyright(C) 2013, GaInOS-TK by Fan Wang. All rights reserved.
+ *
+ * This program is open source software; developer can redistribute it and/or
+ * modify it under the terms of the U-License as published by the T-Engine China
+ * Open Source Society; either version 1 of the License, or (at developer option)
+ * any later Version.
+ *
+ * This program is distributed in the hope that it will be useful,but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the U-License for more details.
+ * Developer should have received a copy of the U-Licensealong with this program;
+ * if not, download from www.tecoss.org(the web page of the T-Engine China Open
+ * Source Society).
+ *
+ * GaInOS-TK is a static configured RTOS, which conformed to OSEK OS 2.2.3 Specification
+ * and it is based on uTenux(http://www.uloong.cc).
+ *
+ * Email: parai@foxmail.com
+ * Sourrce Open At: https://github.com/parai/gainos-tk/
+ */
 #ifndef _OSEK_CFG_H_
 #define _OSEK_CFG_H_
 /* =====================  MISC  ========================== */
@@ -6,7 +26,7 @@
 #define CHIP_MC9S12
 //#define CHIP_STM32F1
 //#define CHIP_AT91SAM3S
-//#define CHIP_MPC54XX
+//#define CHIP_MPC56XX
 
 #if defined(CHIP_MC9S12) //9s12
 #define CPU_FREQUENCY        32000000 /* HZ */
@@ -15,7 +35,7 @@
 #define CPU_FREQUENCY        72000000 /* HZ */
 #elif defined(CHIP_AT91SAM3S)
 #define CPU_FREQUENCY        64000000 /* HZ */
-#elif defined(CHIP_MPC54XX)
+#elif defined(CHIP_MPC56XX)
 #define CPU_FREQUENCY  64000000   /* HZ */
 #define OSC_FREQUENCY  8000000    /* Oscillator Clock 8MHZ */
 #endif

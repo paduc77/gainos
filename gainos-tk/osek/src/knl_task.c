@@ -1,47 +1,26 @@
-/* Copyright 2012, Fan Wang(Parai)
+/* Copyright(C) 2013, GaInOS-TK by Fan Wang. All rights reserved.
  *
- * This file is part of GaInOS.
+ * This program is open source software; developer can redistribute it and/or
+ * modify it under the terms of the U-License as published by the T-Engine Chin a
+ * Open Source Society; either version 1 of the License, or (at developer opti on)
+ * any later Version.
  *
- * GaInOS is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *             
- * Linking GaInOS statically or dynamically with other modules is making a
- * combined work based on GaInOS. Thus, the terms and conditions of the GNU
- * General Public License cover the whole combination.
+ * This program is distributed in the hope that it will be useful,but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNES S FOR
+ * A PARTICULAR PURPOSE. See the U-License for more details.
+ * Developer should have received a copy of the U-Licensealong with this program;
+ * if not, download from www.tecoss.org(the web page of the T-Engine China Open
+ * Source Society).
  *
- * In addition, as a special exception, the copyright holders of GaInOS give
- * you permission to combine GaInOS program with free software programs or
- * libraries that are released under the GNU LGPL and with independent modules
- * that communicate with GaInOS solely through the GaInOS defined interface. 
- * You may copy and distribute such a system following the terms of the GNU GPL
- * for GaInOS and the licenses of the other code concerned, provided that you
- * include the source code of that other code when and as the GNU GPL requires
- * distribution of source code.
+ * GaInOS-TK is a static configured RTOS, which conformed to OSEK OS 2.2.3 Specification
+ * and it is based on uTenux(http://www.uloong.cc).
  *
- * Note that people who make modified versions of GaInOS are not obligated to
- * grant this special exception for their modified versions; it is their choice
- * whether to do so. The GNU General Public License gives permission to release
- * a modified version without this exception; this exception also makes it
- * possible to release a modified version which carries forward this exception.
- * 
- * GaInOS is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GaInOS. If not, see <http://www.gnu.org/licenses/>.
- *
+ * Email: parai@foxmail.com
+ * Sourrce Open At: https://github.com/parai/gainos-tk/
  */
-/* |---------+-------------------| */
-/* | Author: | Wang Fan(parai)   | */
-/* |---------+-------------------| */
-/* | Email:  | parai@foxmail.com | */
-/* |---------+-------------------| */
 #include "knl_task.h"
 #include "knl_timer.h"
+#include "knl_queue.h"
 #include "vPort.h"
 
 EXPORT INT	knl_dispatch_disabled;
@@ -123,7 +102,7 @@ EXPORT void knl_make_non_ready( TCB *tcb )
 }
 
 /* Start all the tasks configured in autosatrt */
-EXPORT void knl_tasks_autostart(void)
+EXPORT void knl_task_init(void)
 {
     TaskType i;
     TCB* tcb;
@@ -157,49 +136,3 @@ EXPORT void knl_change_task_priority( TCB *tcb, PRI priority )
 //	}
 }
 
-/*
- * Change the active task state to wait state and connect to the
- * timer event queue.
- *	Normally, 'knl_ctxtsk' is in the RUN state, but when an interrupt
- *	occurs during executing system call, 'knl_ctxtsk' may become the
- *	other state by system call called in the interrupt handler.
- *	However, it does not be in WAIT state.
- *
- *	"include/tk/typedef.h"
- *	typedef	W		TMO;
- *	typedef UW		RELTIM;
- *	#define TMO_FEVR	(-1)
- */
-EXPORT void knl_make_wait( TickType tmout)
-{
-	switch ( knl_ctxtsk->state ) {
-	  case TS_READY:
-		knl_make_non_ready(knl_ctxtsk);
-		knl_ctxtsk->state = TS_WAIT;
-		break;
-	  case TS_SUSPEND:
-		knl_ctxtsk->state = TS_WAITSUS;
-		break;
-	}
-	knl_timer_insert(&knl_ctxtsk->wtmeb, tmout,(CBACK)knl_wait_release_tmout, knl_ctxtsk);
-}
-
-EXPORT void knl_wait_release_ok( TCB *tcb )
-{
-	knl_wait_release(tcb);
-	*tcb->wercd = E_OK;
-}
-
-/*
- * Update the task state to release wait. When it becomes ready state,
- * connect to the ready queue.
- * Call when the task is in the wait state (including double wait).
- */
-EXPORT void knl_make_non_wait( TCB *tcb )
-{
-	if ( tcb->state == TS_WAIT ) {
-		knl_make_ready(tcb);
-	} else {
-		tcb->state = TS_SUSPEND;
-	}
-}

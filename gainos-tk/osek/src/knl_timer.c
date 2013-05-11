@@ -1,8 +1,28 @@
+/* Copyright(C) 2013, GaInOS-TK by Fan Wang. All rights reserved.
+ *
+ * This program is open source software; developer can redistribute it and/or
+ * modify it under the terms of the U-License as published by the T-Engine China
+ * Open Source Society; either version 1 of the License, or (at developer option)
+ * any later Version.
+ *
+ * This program is distributed in the hope that it will be useful,but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the U-License for more details.
+ * Developer should have received a copy of the U-Licensealong with this program;
+ * if not, download from www.tecoss.org(the web page of the T-Engine China Open
+ * Source Society).
+ *
+ * GaInOS-TK is a static configured RTOS, which conformed to OSEK OS 2.2.3 Specification
+ * and it is based on uTenux(http://www.uloong.cc).
+ *
+ * Email: parai@foxmail.com
+ * Sourrce Open At: https://github.com/parai/gainos-tk/
+ */
 #include  "knl_timer.h" 
+#include "knl_queue.h"
 #include "vPort.h"             
 
 EXPORT LSYSTIM  knl_current_time = 0 ;
-EXPORT WSPEC    knl_wspec_slp = { TTW_SLP};
 EXPORT QUEUE	knl_timer_queue;
 
 /*
@@ -20,10 +40,10 @@ LOCAL void knl_enqueue_tmeb( TMEB *event )
 	QueInsert(&event->queue, q);
 }
 
-EXPORT void knl_wait_release_tmout( TCB *tcb )
+EXPORT void knl_timer_init(void)
 {
-	QueRemove(&tcb->tskque);
-	knl_make_non_wait(tcb);
+    QueInit(&knl_timer_queue);
+    knl_start_hw_timer();
 }
 /*
  * Set timeout event
@@ -67,9 +87,8 @@ EXPORT void knl_timer_handler( void )
 {
 	TMEB	*event;
 
-	BEGIN_CRITICAL_SECTION;
+	BEGIN_DISABLE_INTERRUPT;
 	knl_current_time++;
-
 	/* Execute event that passed occurring time. */
 	while ( !isQueEmpty(&knl_timer_queue) ) {
 		event = (TMEB*)knl_timer_queue.next;
@@ -83,6 +102,5 @@ EXPORT void knl_timer_handler( void )
 			(*event->callback)(event->arg);
 		}
 	}
-
-	END_CRITICAL_SECTION;
+	END_DISABLE_INTERRUPT;
 }

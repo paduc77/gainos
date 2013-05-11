@@ -1,3 +1,23 @@
+/* Copyright(C) 2013, GaInOS-TK by Fan Wang. All rights reserved.
+ *
+ * This program is open source software; developer can redistribute it and/or
+ * modify it under the terms of the U-License as published by the T-Engine China
+ * Open Source Society; either version 1 of the License, or (at developer option)
+ * any later Version.
+ *
+ * This program is distributed in the hope that it will be useful,but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the U-License for more details.
+ * Developer should have received a copy of the U-Licensealong with this program;
+ * if not, download from www.tecoss.org(the web page of the T-Engine China Open
+ * Source Society).
+ *
+ * GaInOS-TK is a static configured RTOS, which conformed to OSEK OS 2.2.3 Specification
+ * and it is based on uTenux(http://www.uloong.cc).
+ *
+ * Email: parai@foxmail.com
+ * Sourrce Open At: https://github.com/parai/gainos-tk/
+ */
 #include "vPort.h"
 #include "derivative.h"      /* derivative-specific definitions */
 #include "knl_timer.h"
@@ -59,21 +79,6 @@ EXPORT void knl_setup_context( TCB *tcb )
     ssp->pc = (VH)(pc>>8);          /* Task startup address */
     tcb->tskctxb.ssp = ssp;         /* System stack */
 }
-
-EXPORT void knl_enter_isr(void)
-{
-    ENTER_TASK_INDEPENDENT;
-}
-
-EXPORT void knl_exit_isr(void)
-{
-    LEAVE_TASK_INDEPENDENT;
-    if( knl_ctxtsk != knl_schedtsk		       
-        && !knl_isTaskIndependent()	           
-        && !knl_dispatch_disabled ) {		           
-        knl_dispatch();		                    
-    }
-}
 #pragma CODE_SEG __NEAR_SEG NON_BANKED
 static void l_dispatch0(void)
 {
@@ -122,12 +127,12 @@ _ret_int_dispatch:
 	knl_ctxtsk=(void*)0;
 	asm jmp l_dispatch0;  	    	
 }
-interrupt 7 void knl_systick_handler(void)
+ISR(SystemTick,7)
 { 
-    knl_enter_isr(); 
-    CRGFLG &=0xEF;			// clear the interrupt flag  
-	asm cli;     /* enable interrupt */ 
+    CRGFLG &=0xEF;			// clear the interrupt flag 
+    EnterISR(); 
 	knl_timer_handler();
-	knl_exit_isr();		
+	(void)IncrementCounter(0);
+	ExitISR();	
 }
 #pragma CODE_SEG DEFAULT

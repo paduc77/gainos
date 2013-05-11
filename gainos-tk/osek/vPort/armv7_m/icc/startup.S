@@ -29,6 +29,7 @@
  *	 Description    : Start up module
  *----------------------------------------------------------------------------------------
  */
+#include "Compiler.h"
     MODULE  ?cstartup
 
     ;; Forward declaration of sections.
@@ -36,10 +37,8 @@
 
     SECTION .intvec:CODE:NOROOT(2)
     EXTERN __iar_program_start
-    EXTERN  knl_dispatch_entry,knl_enter_isr,knl_exit_isr,knl_timer_handler  
-    
-    
-    ALIGNROM 0
+    EXTERN  knl_dispatch_entry,knl_force_dispatch_impl,knl_timer_handler  
+    EXTERN  ISREntry(SystemTick) 
     PUBLIC __vector_table
     DATA
 __vector_table:
@@ -55,11 +54,11 @@ __vector_table:
     DCD     0                                    /* 08: Reserved                    */
     DCD     0                                    /* 09: Reserved                    */
     DCD     0                                    /* 10: Reserved                    */
-    DCD     0                                    /* 11: SVCall Handler              */
+    DCD     knl_force_dispatch_impl              /* 11: SVCall Handler              */
     DCD     default_handler                      /* 12: Debug Monitor Handler       */
     DCD     0                                    /* 13: Reserved                    */
     DCD     knl_dispatch_entry                   /* 14: PendSV Handler              */
-    DCD     SysTick_Handler                      /* 15: Systick handler             */
+    DCD     ISREntry(SystemTick)                 /* 15: Systick handler             */
 
     /*    External Interrupts Vector Define                                         */
     DCD     default_handler                      /* 16: */
@@ -308,7 +307,6 @@ __vector_table:
  */
     SECTION .text:CODE
     THUMB
-    ALIGNROM 0
     PUBLIC reset_handler
 reset_handler:
         LDR     R0, =__iar_program_start
@@ -320,13 +318,6 @@ reset_handler:
 	PUBLIC default_handler
 default_handler:
     b       default_handler
-
-    PUBLIC SysTick_Handler
-SysTick_Handler:
-    push    {lr}
-    bl      knl_enter_isr
-    bl      knl_timer_handler             /* call timer_handler() */
-    b       knl_exit_isr
 
     END
 
