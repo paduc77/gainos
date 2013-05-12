@@ -47,15 +47,15 @@
 from PyQt4.QtGui import QDialog
 from PyQt4.QtCore import pyqtSignature
 
-from CanTpCfg import *
+from gainos_tk_cantp_cfg import *
 
-from Ui_CanTp_Dlg import Ui_CanTp_Dlg
+from Ui_cd_cantp import Ui_cd_cantp
 
-class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
+class cd_cantp(QDialog, Ui_cd_cantp):
     """
     Class documentation goes here.
     """
-    def __init__(self, cfg, depinfo, parent = None):
+    def __init__(self, title, fileInd, cfg, depinfo, parent = None):
         """
         depinfo[]: 
         -> depinfo[0]: the info about the list configured in EcuC,
@@ -67,6 +67,8 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
         self.curtree=None;
         QDialog.__init__(self, parent)
         self.setupUi(self)
+        self.setWindowTitle(title);
+        self.fileInd = fileInd;
         self.initGui();
 
     def reloadTreeGui(self, trindex, list):
@@ -79,11 +81,6 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
             tree.addChild(item);
 
     def initTab(self):
-        for obj in self.depinfo[0].cfg.pduList:
-            self.cmbxRxPduId.addItem('RX_'+obj.name);
-            self.cmbxRxFcPduId.addItem('RX_'+obj.name);
-            self.cmbxTxFcPduId.addItem('TX_'+obj.name);
-            self.cmbxTxPduId.addItem('TX_'+obj.name);
         #初始化 Rx
         self.cmbxRxTaType.setDisabled(True);# only physical is allowed.
         self.spbxRxPduDlc.setRange(0, 8);
@@ -165,6 +162,11 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
             self.btnAdd.setText('Del Tx NSdu');
     
     def refreshRxNSduTab(self, name):
+        self.cmbxRxPduId.clear();
+        self.cmbxTxFcPduId.clear();
+        for obj in self.depinfo[0].cfg.pduList:
+            self.cmbxRxPduId.addItem('RX_'+obj.name);
+            self.cmbxTxFcPduId.addItem('TX_'+obj.name);
         self.curobj= obj = self.findObj(self.cfg.RxNSduList, name);
         if(obj == None):
             return;
@@ -192,6 +194,11 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
         self.enableTab(0);
 
     def refreshTxNSduTab(self, name):
+        self.cmbxRxFcPduId.clear();
+        self.cmbxTxPduId.clear();
+        for obj in self.depinfo[0].cfg.pduList:
+            self.cmbxRxFcPduId.addItem('RX_'+obj.name);
+            self.cmbxTxPduId.addItem('TX_'+obj.name);
         self.curobj= obj = self.findObj(self.cfg.TxNSduList, name);
         if(obj == None):
             return;
@@ -238,46 +245,55 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
         if(self.curobj!=None):
             self.curobj.name=p0;
             self.curtree.setText(0, p0);
+            self.fileInd(False);
 
     @pyqtSignature("QString")
     def on_cmbxRxPduId_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.PduR_PduId=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxTxFcPduId_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanIf_FcPduId=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxPduDlc_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpRxDI=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxRxPduPadding_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpRxPaddingActivation=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxRxTaType_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpRxTaType=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxBs_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpBs=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxSTmin_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpSTmin=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxWftMax_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpWftMax=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxRxAddressingFormat_activated(self, p0):
@@ -289,52 +305,62 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
             elif(p0 == 'CANTP_EXTENDED'):
                 self.spbxRxNTa.setDisabled(False);
                 self.spbxRxNSa.setDisabled(False);
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxNTa_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNTa=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxNSa_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNSa=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxNar_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNar=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxNbr_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNbr=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxRxNcr_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNcr=p0;
+            self.fileInd(False);
 
     @pyqtSignature("QString")
     def on_leTxPduName_textChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.name=p0;
             self.curtree.setText(0, p0);
+            self.fileInd(False);
 
     @pyqtSignature("int")
     def on_spbxTxNas_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNas=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxTxNbs_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNbs=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxTxNcs_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNcs=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxTxAddressingFormat_activated(self, p0):
@@ -346,41 +372,49 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
             elif(p0 == 'CANTP_EXTENDED'):
                 self.spbxTxNTa.setDisabled(False);
                 self.spbxTxNSa.setDisabled(False);
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxTxNTa_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNTa=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxTxNsa_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpNSa=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxTxPduId_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.PduR_PduId=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxRxFcPduId_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanIf_FcPduId=p0;
+            self.fileInd(False);
     
     @pyqtSignature("int")
     def on_spbxTxPduDlc_valueChanged(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpTxDI=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxTxPduPadding_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpTxPaddingActivation=p0;
+            self.fileInd(False);
     
     @pyqtSignature("QString")
     def on_cmbxTxTaType_activated(self, p0):
         if(self.curobj!=None):
             self.curobj.CanTpTxTaType=p0;
+            self.fileInd(False);
     
     def addRxNSdu(self):
         id = len(self.cfg.RxNSduList);
@@ -427,3 +461,4 @@ class CanTp_Dlg(QDialog, Ui_CanTp_Dlg):
         elif(text=='Del Rx NSdu'
             or text == 'Del Tx NSdu'):
             self.delNSdu();
+        self.fileInd(False);
