@@ -24,11 +24,6 @@
 #include "osek_os.h"
 #include "vPortMacro.h"
 #include "knl_task.h"
-#if  defined(CHIP_STM32F1)
-#include "stm32f10x.h"
-#elif defined(CHIP_AT91SAM3S)
-#include "SAM3S.h"
-#endif
 /* ============================ MACROs ============================================= */
 
 /* ============================ TYPEs ============================================= */
@@ -36,23 +31,13 @@
  * System stack configuration at task startup
  */
 typedef struct {
-        VW      r4;                              /* R4        */
-        VW      r5;                              /* R5        */
-        VW      r6;                              /* R6        */
-        VW      r7;                              /* R7        */
-        VW      r8;                              /* R8        */
-        VW      r9;                              /* R9        */
-        VW      r10;                             /* R10       */
-        VW      r11;                             /* R11       */
-        UW      taskmode;                        /* used for saving knl_taskmode */
-        VW      r0;                              /* R0        */
-        VW      r1;                              /* R1        */
-        VW      r2;                              /* R2        */
-        VW      r3;                              /* R3        */
-        UW      r12;                             /* R12       */
-        VP      lr;                              /* LR        */
-        VP      pc;                              /* PC        */
-        VW      xpsr;                            /* PSR       */
+	VH taskmode;
+	VH R[16];
+	VH MDH;
+	VH MDL;
+	VH IP;
+	VH CSP;
+	VH PSW;
 } SStackFrame;
 
 /* ============================ FUNCTIONs ========================================= */
@@ -61,18 +46,16 @@ typedef struct {
  * and forcibly dispatch to the task that should be performed next.
  *	Use at system startup and 'tk_ext_tsk, tk_exd_tsk.'
  */
-#define knl_force_dispatch()  {__asm("cpsie   i");__asm("svc 0");}
-
+IMPORT void knl_force_dispatch(void); 
 /*
  * Start task dispatcher
  */
-#define knl_dispatch() { SCB->ICSR = SCB_ICSR_PENDSVSET_Msk; }
-
+#define knl_dispatch() {__asm("TRAP #1");}
 
 /*
  * Start task dispatcher during ISR
  */
-#define knl_isr_dispatch() knl_dispatch_ret_int()
+#define knl_isr_dispatch() {__asm("TRAP #1");}
 
 IMPORT imask_t disint( void );
 IMPORT void enaint( imask_t intsts );
@@ -82,6 +65,5 @@ IMPORT void knl_start_hw_timer( void );
  *	Call from 'make_dormant()'
  */
 IMPORT void knl_setup_context( TCB *tcb );
-IMPORT void knl_dispatch_ret_int(void);
 
 #endif/* VPORT_H_H */
