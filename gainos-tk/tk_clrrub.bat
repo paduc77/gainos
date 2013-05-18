@@ -65,8 +65,23 @@ del /s /q JLinkLog.txt
 del /s /q *.pbd
 del /s /q *.pbd.*
 del /s /q *.__i
+REM delete CW rubbish
+del /s /q *.abs
+del /s /q *.xpr
 del /s /q *.s19
 del /s /q *.pyc
+del /s /q *.phy
+del /s /q *.stg
+del /s /q *.mot
+del /s /q *.tdt
+REM delete Tasking rubbish
+del /s /q *.obj
+del /s /q *.log
+del /s /q *.mk
+del /s /q *.mapxml
+del /s /q *.mdf
+del /s /q *.elf
+del /s /q *.src
 
 echo Cleared successfully
 echo on
