@@ -19,69 +19,17 @@
  * Sourrce Open At: https://github.com/parai/gainos-tk/
  */
 /*
- * This vPort is For TASKING VX-toolset TriCore.
- * Run OK on TriCore(TC1797) family chip.
+ * This portable is For TASKING VX-toolset TriCore.
+ * TODO:still not finshed, trap context will be generated
  */
 #include "portable.h"
 #include "knl_timer.h"
 #include "knl_task.h"
+#include "INT.h"
 
 EXPORT void knl_start_hw_timer( void )
 {
 	/* Do nothing, as DAVE has done this. */
-}
-EXPORT void knl_setup_context( TCB *tcb )
-{
-    UpperCSA *pulUpperCSA = NULL;
-    LowerCSA *pulLowerCSA = NULL;
-    ID tskid = tcb - knl_tcb_table;
-    /* 16 Address Registers (4 Address registers are global), 16 Data
-    	Registers, and 3 System Registers.
-
-    	There are 3 registers that track the CSAs.
-    		FCX points to the head of globally free set of CSAs.
-    		PCX for the task needs to point to Lower->Upper->NULL arrangement.
-    		LCX points to the last free CSA so that corrective action can be taken.
-
-    	Need two CSAs to store the context of a task.
-    		The upper context contains D8-D15, A10-A15, PSW and PCXI->NULL.
-    		The lower context contains D0-D7, A2-A7, A11 and PCXI->UpperContext.
-    		The pxCurrentTCB->pxTopOfStack points to the Lower Context RSLCX matching the initial BISR.
-    		The Lower Context points to the Upper Context ready for the return from the interrupt handler.
-
-    	 The Real stack pointer for the task is stored in the A10 which is restored
-    	 with the upper context. */
-    /* DSync to ensure that buffering is not a problem. */
-    __dsync();
-    /* Consume two free CSAs. */
-    pulLowerCSA = (LowerCSA*)vPortCSA_TO_ADDRESS( __mfcr( FCX ) );
-    if( NULL != pulLowerCSA )
-	{
-		/* The Lower Links to the Upper. */
-		pulUpperCSA = (UpperCSA*)vPortCSA_TO_ADDRESS( pulLowerCSA->pcxi );
-	}
-    /* Check that we have successfully reserved two CSAs. */
-	if( ( NULL != pulLowerCSA ) && ( NULL != pulUpperCSA ) )
-	{
-		/* Remove the two consumed CSAs from the free CSA list. */
-		__dsync();
-		__mtcr( FCX, pulUpperCSA->pcxi );
-		__isync();
-	}
-	else
-	{
-		/* Simply trigger a context list depletion trap. */
-		__svlcx();
-	}
-	pulUpperCSA->SP = (UW)(knl_gtsk_table[tskid].isstack);
-	pulUpperCSA->psw = 0x000008FFUL; /* Supervisor Mode, IS = 0 User Stack and Call Depth Counting disabled. */
-
-	pulLowerCSA->RA = (UW)(knl_gtsk_table[tskid].task);
-
-	/* PCXI pointing to the Upper context and PIE = 1, So interrupt enabled */
-	pulLowerCSA->pcxi = ( ( 0x00C00000UL ) | ( unsigned long ) vPortADDRESS_TO_CSA( pulUpperCSA ) );
-	pulUpperCSA->pcxi = 0; /* NULL */
-	tcb->tskctxb.ssp = (unsigned long * ) vPortADDRESS_TO_CSA( pulLowerCSA );
 }
 
 /*
@@ -103,7 +51,7 @@ EXPORT void knl_setup_context( TCB *tcb )
  * deleted frequently.
  */
 /* In FreeRTOS,This API is called when in idle task.*/
-LOCAL void vPortReclaimCSA( unsigned long pxHeadCSA )
+EXPORT void knl_reclaim_csa( unsigned long pxHeadCSA )
 {
     unsigned long  pxTailCSA, pxFreeCSA;
     unsigned long *pulNextCSA;
@@ -117,7 +65,7 @@ LOCAL void vPortReclaimCSA( unsigned long pxHeadCSA )
 
 	/* Convert the link value to contain just a raw address and store this
        in a local variable. */
-	pulNextCSA = vPortCSA_TO_ADDRESS( pxTailCSA );
+	pulNextCSA = CSA_TO_ADDRESS( pxTailCSA );
 
 	/* Iterate over the CSAs that were consumed as part of the task.  The
        first field in the CSA is the pointer to then next CSA.  Mask off
@@ -134,7 +82,7 @@ LOCAL void vPortReclaimCSA( unsigned long pxHeadCSA )
 		pxTailCSA = pulNextCSA[ 0 ];
 
 		/* Update the local pointer to the CSA. */
-		pulNextCSA = vPortCSA_TO_ADDRESS( pxTailCSA );
+		pulNextCSA = CSA_TO_ADDRESS( pxTailCSA );
 	}
 
 	{
@@ -166,11 +114,71 @@ EXPORT imask_t disint()
 	__disable();
 	return mask;
 }
+EXPORT void knl_set_ipl(UINT ipl)
+{
+	UW ulICR;
+	ulICR = __mfcr( ICR );
+	ulICR &= ~0x000000FFUL;
+	ulICR |= ipl;
+	__mtcr(ICR,ulICR);
+}
+#define cfgUSE_FREERTOS_PORT STD_OFF
+#if(cfgUSE_FREERTOS_PORT == STD_ON)
+EXPORT void knl_setup_context( TCB *tcb )
+{
+    UpperCSA *pulUpperCSA = NULL;
+    LowerCSA *pulLowerCSA = NULL;
+    ID tskid = tcb - knl_tcb_table;
+    /* 16 Address Registers (4 Address registers are global), 16 Data
+    	Registers, and 3 System Registers.
 
+    	There are 3 registers that track the CSAs.
+    		FCX points to the head of globally free set of CSAs.
+    		PCX for the task needs to point to Lower->Upper->NULL arrangement.
+    		LCX points to the last free CSA so that corrective action can be taken.
+
+    	Need two CSAs to store the context of a task.
+    		The upper context contains D8-D15, A10-A15, PSW and PCXI->NULL.
+    		The lower context contains D0-D7, A2-A7, A11 and PCXI->UpperContext.
+    		The pxCurrentTCB->pxTopOfStack points to the Lower Context RSLCX matching the initial BISR.
+    		The Lower Context points to the Upper Context ready for the return from the interrupt handler.
+
+    	 The Real stack pointer for the task is stored in the A10 which is restored
+    	 with the upper context. */
+    /* DSync to ensure that buffering is not a problem. */
+    __dsync();
+    /* Consume two free CSAs. */
+    pulLowerCSA = (LowerCSA*)CSA_TO_ADDRESS( __mfcr( FCX ) );
+    if( NULL != pulLowerCSA )
+	{
+		/* The Lower Links to the Upper. */
+		pulUpperCSA = (UpperCSA*)CSA_TO_ADDRESS( pulLowerCSA->pcxi );
+	}
+    /* Check that we have successfully reserved two CSAs. */
+	if( ( NULL != pulLowerCSA ) && ( NULL != pulUpperCSA ) )
+	{
+		/* Remove the two consumed CSAs from the free CSA list. */
+		__dsync();
+		__mtcr( FCX, pulUpperCSA->pcxi );
+		__isync();
+	}
+	else
+	{
+		/* Simply trigger a context list depletion trap. */
+		__svlcx();
+	}
+	pulUpperCSA->SP = (UW)(tcb->isstack);
+	pulUpperCSA->psw = 0x000008FFUL; /* Supervisor Mode, IS = 0 User Stack and Call Depth Counting disabled. */
+
+	pulLowerCSA->RA = (UW)(tcb->task);
+
+	/* PCXI pointing to the Upper context and PIE = 1, So interrupt enabled */
+	pulLowerCSA->pcxi = ( ( 0x00C00000UL ) | ( unsigned long ) ADDRESS_TO_CSA( pulUpperCSA ) );
+	pulUpperCSA->pcxi = 0; /* NULL */
+	tcb->tskctxb.ssp = (unsigned long * ) ADDRESS_TO_CSA( pulLowerCSA );
+}
 void l_dispatch0(void)
 {
-	/* lower CPU IPL to 0*/
-	__mtcr(ICR,((__mfcr(ICR)&(0xFFFFFF00))));
 l_dispatch1:
 	__disable();
 	if(NULL == knl_schedtsk)
@@ -210,7 +218,7 @@ EXPORT void knl_force_dispatch(void)
 	__disable();	//disable interrupt
 
 	/* Free the csa used by knl_ctxtsk */
-	vPortReclaimCSA(__mfcr(PCXI));
+	knl_reclaim_csa(__mfcr(PCXI));
 
 	/* Clear the PSW.CDC to enable the use of an RFE without it generating an
 	exception because this code is not genuinely in an exception. */
@@ -220,21 +228,176 @@ EXPORT void knl_force_dispatch(void)
 		ulMFCR &= ( ~( 0x000000FFUL ) );
 		__dsync();
 		__mtcr( PSW, ulMFCR );
+		__mtcr( PCXI,0);
 		__isync();
 	}
 
 	/* Don't consume CSA.So just Jump*/
 	__asm("j l_dispatch0");
 }
-EXPORT __trap(6) void knl_dispatch_entry(void)
+EXPORT __interrupt (CPU0INT) void knl_dispatch_entry(void)
 {
 	knl_dispatch_disabled = 1;    /* Dispatch disable */
 	__disable();
 	__dsync();
 	__svlcx(); /* save lower contex */
 	knl_ctxtsk->tskctxb.ssp = __mfcr( PCXI );
+	knl_ctxtsk = NULL;
 	__isync();
 
 	/* Don't consume CSA.So just Jump*/
 	__asm("j l_dispatch0");
 }
+
+#else /* cfgUSE_FREERTOS_PORT */
+void knl_activate_r(void);
+EXPORT void knl_setup_context( TCB *tcb )
+{
+	tcb->tskctxb.ssp = tcb->isstack;
+	tcb->tskctxb.dispatcher = knl_activate_r;
+}
+
+
+#if 0
+void knl_activate_r(void)
+{
+	UW *pulUpperCSA = CSA_TO_ADDRESS(__mfcr(FCX));
+	/* Check that we have successfully reserved two CSAs. */
+	if( NULL != pulUpperCSA )
+	{
+		/* Remove the two consumed CSAs from the free CSA list. */
+		__disable();
+		__dsync();
+		__mtcr( FCX, pulUpperCSA[ 0 ] );
+		__isync();
+		__enable();
+	}
+	else
+	{
+		/* Simply trigger a context list depletion trap. */
+		__svlcx();
+	}
+	/* Upper Context. */
+	pulUpperCSA[ 2 ] = (UW)knl_ctxtsk->isstack;		/* A10;	Stack Return aka Stack Pointer */
+	pulUpperCSA[ 1 ] = 0x000008FFUL;				/* PSW	*/
+	pulUpperCSA[ 0 ] = 0x00000000UL;				/* PCXI */
+	__dsync();
+	__mtcr(PCXI,(0x00C00000UL | (UW)ADDRESS_TO_CSA(pulUpperCSA)));
+	__isync();
+	__asm("mov.a\ta11,%0"::"d"((UW)knl_ctxtsk->task));
+	__asm("rfe");
+}
+#else
+void knl_activate_r(void)
+{
+	UW sp = (UW)(knl_ctxtsk->tskctxb.ssp);
+	__asm("mov.a\tsp,%0"::"d"(sp));
+	__dsync();
+	/* Supervisor Mode, IS = 0 User Stack and Call Depth Counting disabled. */
+	__mtcr(PSW,0x000008FFUL);
+	__mtcr( PCXI, 0 );
+	__isync();
+	knl_set_ipl(0);
+	__enable();
+	{	//jump to task
+		UW task = (UW)knl_ctxtsk->task;
+		__asm("mov.a\ta15,%0"::"d"(task));
+		__asm("ji a15");
+	}
+}
+#endif
+void knl_dispatch_r(void)
+{
+	__dsync();
+	__mtcr( PCXI, (UW)(knl_ctxtsk->tskctxb.ssp) );
+	__isync();
+	__nop();
+	__rslcx();
+	__nop();
+
+	/* Return to the first task selected to execute. */
+	__asm volatile( "rfe" );
+}
+void l_dispatch0(void)
+{
+	/* lower CPU IPL to 0*/
+	knl_set_ipl(0);
+l_dispatch1:
+	__disable();
+	if(NULL == knl_schedtsk)
+	{
+		__enable();
+		__nop();
+		__nop();
+		__nop();
+		__nop();
+		goto l_dispatch1;
+	}
+//l_dispatch2:
+	knl_ctxtsk = knl_schedtsk;
+	knl_dispatch_disabled=0;    /* Dispatch enable */
+	{
+		UW dispatcher = (UW)knl_ctxtsk->tskctxb.dispatcher;
+		__asm("mov.a\ta15,%0"::"d"(dispatcher));
+		__asm("ji a15");
+	}
+}
+extern __far void _lc_ue_istack[];      /* interrupt stack end */
+EXPORT void knl_force_dispatch(void)
+{
+	UW sp = (UW)(_lc_ue_istack);
+	__asm("mov.a\tsp,%0"::"d"(sp));
+	knl_dispatch_disabled = 1;    /* Dispatch disable */
+	knl_ctxtsk = NULL;
+	__disable();	//disable interrupt
+
+	/* Free the csa used by knl_ctxtsk */
+	knl_reclaim_csa(__mfcr(PCXI));
+
+	/* Don't consume CSA.So just Jump*/
+	__asm("j l_dispatch0");
+}
+EXPORT __trap(2) void knl_instruction_trap(void)
+{
+	/* If Instruction Error, Deadloop. */
+	__debug();
+	for(;;);
+}
+EXPORT __trap(3) void knl_context_trap(void)
+{
+	/* If Context Error, Deadloop. */
+	__debug();
+	for(;;);
+}
+/* This is a CPU_SRC0 pending ISR used for context switch */
+EXPORT void __interrupt (CPU0INT) knl_dispatch_entry(void)
+{
+	knl_dispatch_disabled = 1;    /* Dispatch disable */
+	__disable();
+	__svlcx(); /* save lower contex */
+	knl_ctxtsk->tskctxb.ssp = __mfcr( PCXI );
+	knl_ctxtsk->tskctxb.dispatcher = knl_dispatch_r;
+	knl_ctxtsk = NULL;
+
+	/* Don't consume CSA.So just Jump*/
+	__asm("j l_dispatch0");
+}
+#if 0
+EXPORT __trap(6) void knl_syscall_entry(void)
+{
+	UINT syscall_nr;
+	__asm("mov %0,d15":"=d"(syscall_nr):);
+	switch(syscall_nr)
+	{
+		case 0:
+			__asm("j knl_dispatch_entry");
+			break;
+		case 1:
+			__asm("j knl_force_dispatch_impl");
+			break;
+		default:
+			break;
+	}
+}
+#endif
+#endif /* cfgUSE_FREERTOS_PORT */

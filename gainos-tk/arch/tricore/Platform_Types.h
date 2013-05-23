@@ -31,6 +31,7 @@ typedef unsigned short               imask_t;
  */
 typedef struct {
 	void* ssp;		/* System stack pointer */
+	void (*dispatcher)(void);
 } CTXB;
 
 

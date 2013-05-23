@@ -66,10 +66,9 @@ EXPORT TCB* knl_ready_queue_top( RDYQUE *rq )
  * Insert task in ready queue
  *	Insert it at the end of the same priority tasks with task priority 
  *	indicated with 'tcb'. Set the applicable bit in the bitmap area and 
- *	update 'top_priority' if necessary. When updating 'top_priority,' 
- *	return TRUE, otherwise FALSE.
+ *	update 'top_priority' if necessary. 
  */
-EXPORT BOOL knl_ready_queue_insert( RDYQUE *rq, TCB *tcb )
+EXPORT void knl_ready_queue_insert( RDYQUE *rq, TCB *tcb )
 {
 	INT	priority = tcb->priority;
 
@@ -82,9 +81,7 @@ EXPORT BOOL knl_ready_queue_insert( RDYQUE *rq, TCB *tcb )
 
 	if ( priority < rq->top_priority ) {
 		rq->top_priority = priority;
-		return TRUE;
 	}
-	return FALSE;
 }
 
 /*
@@ -93,7 +90,6 @@ EXPORT BOOL knl_ready_queue_insert( RDYQUE *rq, TCB *tcb )
 EXPORT void knl_ready_queue_insert_top( RDYQUE *rq, TCB *tcb )
 {
 	INT	priority = tcb->priority;
-
 	QueInsert(&tcb->tskque, rq->tskque[priority].next);
 	knl_tstdlib_bitset(rq->bitmap, priority);
 
@@ -143,30 +139,4 @@ EXPORT void knl_ready_queue_delete( RDYQUE *rq, TCB *tcb )
 	} else {
 		rq->top_priority = NUM_PRI;
 	}
-}
-/*
- * Move the task, whose ready queue priority is 'priority', at head of
- * queue to the end of queue. Do nothing, if the queue is empty.
- */
-EXPORT void knl_ready_queue_rotate( RDYQUE *rq, INT priority )
-{
-	QUEUE	*tskque = &rq->tskque[priority];
-	TCB	*tcb;
-
-	tcb = (TCB*)QueRemoveNext(tskque);
-	if ( tcb != NULL ) {
-		QueInsert((QUEUE*)tcb, tskque);
-	}
-}
-/*
- * Put 'tcb' to the end of ready queue. 
- */
-EXPORT TCB* knl_ready_queue_move_last( RDYQUE *rq, TCB *tcb )
-{
-	QUEUE	*tskque = &rq->tskque[tcb->priority];
-
-	QueRemove(&tcb->tskque);
-	QueInsert(&tcb->tskque, tskque);
-
-	return (TCB*)tskque->next;	/* New task at head of queue */
 }

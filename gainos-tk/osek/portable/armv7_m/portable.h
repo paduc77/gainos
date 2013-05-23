@@ -62,7 +62,6 @@ typedef struct {
  *	Use at system startup and 'tk_ext_tsk, tk_exd_tsk.'
  */
 #define knl_force_dispatch()  {__asm("cpsie   i");__asm("svc 0");}
-
 /*
  * Start task dispatcher
  */
@@ -83,5 +82,6 @@ IMPORT void knl_start_hw_timer( void );
  */
 IMPORT void knl_setup_context( TCB *tcb );
 IMPORT void knl_dispatch_ret_int(void);
+IMPORT void knl_activate_r(void);
 
 #endif/* VPORT_H_H */

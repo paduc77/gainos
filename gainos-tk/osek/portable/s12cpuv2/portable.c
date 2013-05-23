@@ -63,21 +63,23 @@ EXPORT void knl_start_hw_timer( void )
     RTICTL = 0x70;       //设置实时中断的时间间隔为4.096ms
     //中断周期=1/16 x 10E-6 x （0+1）x 2E（7+9）=0.004096s=4.096ms 
 }
+EXPORT void knl_activate_r(void)
+{
+    __asm CLI; // enable interrupt
+    knl_ctxtsk->task();
+}
+EXPORT void knl_dispatch_r(void)
+{
+    asm   pula
+    asm   staa	$30	      /* restore PPAGE */
+    asm   puld;
+    asm   std   knl_taskmode  /* restore knl_taskmode */
+    asm   rti;   
+}
 EXPORT void knl_setup_context( TCB *tcb )
 {
-    SStackFrame     *ssp;
-    UW pc;
-    ID tskid = tcb - knl_tcb_table;
-    ssp = knl_gtsk_table[tskid].isstack;
-    ssp--;
-    pc = (UW)knl_gtsk_table[tskid].task;
-
-    /* CPU context initialization */
-    ssp->ppage =(VB)pc;
-    ssp->taskmode  = 0;             /* Initial taskmode */
-    ssp->ccr = (0xC0);              /* CCR Register (Disable STOP instruction and XIRQ)       */
-    ssp->pc = (VH)(pc>>8);          /* Task startup address */
-    tcb->tskctxb.ssp = ssp;         /* System stack */
+    tcb->tskctxb.ssp = tcb->isstack;
+    tcb->tskctxb.dispatcher = knl_activate_r;
 }
 #pragma CODE_SEG __NEAR_SEG NON_BANKED
 static void l_dispatch0(void)
@@ -99,11 +101,8 @@ l_dispatch2:
 	/* Context restore */
 	asm   ldx  knl_ctxtsk;
 	asm   lds  SP_OFFSET,x;       /* Restore 'ssp' from TCB */
-	asm   pula
-    asm   staa	$30	      /* restore PPAGE */
-    asm   puld;
-    asm   std   knl_taskmode  /* restore knl_taskmode */
-    asm   rti;   
+    //knl_ctxtsk->tskctxb.dispatcher();
+    asm   jmp  [6,x];
 }
 void knl_force_dispatch(void)
 {
@@ -123,6 +122,7 @@ interrupt 4 void knl_dispatch_entry(void)
 	asm   psha                  /* save ppage */
 	asm   ldx  knl_ctxtsk;
 	asm   sts  SP_OFFSET,x;            /* save 'ssp' to TCB */
+	knl_ctxtsk->tskctxb.dispatcher = knl_dispatch_r;
 	knl_ctxtsk=(void*)0;
 	asm jmp l_dispatch0;  	    	
 }

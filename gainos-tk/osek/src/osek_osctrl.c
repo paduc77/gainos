@@ -48,7 +48,6 @@ void StartOS ( AppModeType xAppMode )
 {
     DISABLE_INTERRUPT;
     knl_cntalm_init();
-    knl_entflg_init();
     knl_resource_init();
 	knl_task_init();
 
@@ -57,6 +56,8 @@ void StartOS ( AppModeType xAppMode )
 #endif
 #if(cfgOS_TK_EXTEND == STD_ON)
     knl_timer_init();
+#else
+    knl_start_hw_timer();     
 #endif
     /* OS424: The first call to StartOS() (for starting the Operating System) shall not
        return. */    
@@ -111,9 +112,8 @@ void ShutdownOS( StatusType xError )
 
 }
 
-#if (defined(CHIP_MC9S12) || defined(CHIP_MPC54XX) || (cfgCORTEX_M3_ISR ==  ISR_IN_C))
-/* This only works OK for s12cpuv2 and e200z3. 
- * For Arm Cortex M3, terrible. So I move them to vPortS.S */
+#if defined(cfgOSEK_STD_ISR_PROCESS)
+/* For Arm Cortex M3, terrible. So I move them to portableS.S */
 void EnterISR(void)
 {
     knl_taskindp++;/* Enter Task Independedt Part */
