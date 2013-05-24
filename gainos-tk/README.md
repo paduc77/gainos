@@ -62,7 +62,7 @@ gainos-tk
 	+---+ osek               <--- GaInOS-TK 核心
 	+-------+ inc            <--- GaInOS-TK 内核 .h 
 	+-------+ src            <--- GaInOS-TK 内核 .c 
-	+-------+ vPort          <--- GaInOS-TK 内核移植部分
+	+-------+ portable       <--- GaInOS-TK 内核移植部分
 	+---+ toppers_osek       <--- GaInOS-TK 实现时参考的一个os
 	
 使用说明
