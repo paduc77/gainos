@@ -104,7 +104,7 @@ void ShutdownOS( StatusType xError )
 #endif
 /* OS425: If ShutdownOS() is called and ShutdownHook() returns then the operating
    system shall disable all interrupts and enter an endless loop. */
-	/* tm_printf("Shut down OS because of error %d.\r\n",xError); */
+	/* tm_printf("Shut down OS because of error %d.\r\r\n",xError); */
 	for ( ; ; )
     {
         /* Dead lopp here */
@@ -114,6 +114,7 @@ void ShutdownOS( StatusType xError )
 
 #if defined(cfgOSEK_STD_ISR_PROCESS)
 /* For Arm Cortex M3, terrible. So I move them to portableS.S */
+/* For others, define cfgOSEK_STD_ISR_PROCESS in your compiler pre-processor */
 void EnterISR(void)
 {
     knl_taskindp++;/* Enter Task Independedt Part */
