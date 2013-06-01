@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'F:\parai@foxmail.com\github\gainos-tk\tool\gainos-studio\ui\forms\cd_dcm.ui'
 #
-# Created: Thu May 30 19:49:47 2013
+# Created: Sat Jun 01 15:54:14 2013
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -817,10 +817,12 @@ class Ui_cd_dcm(object):
         self.tab_23 = QtGui.QWidget()
         self.tab_23.setObjectName(_fromUtf8("tab_23"))
         self.layoutWidget13 = QtGui.QWidget(self.tab_23)
-        self.layoutWidget13.setGeometry(QtCore.QRect(20, 20, 561, 95))
+        self.layoutWidget13.setGeometry(QtCore.QRect(20, 20, 561, 130))
         self.layoutWidget13.setObjectName(_fromUtf8("layoutWidget13"))
-        self.verticalLayout_20 = QtGui.QVBoxLayout(self.layoutWidget13)
-        self.verticalLayout_20.setMargin(0)
+        self.verticalLayout_33 = QtGui.QVBoxLayout(self.layoutWidget13)
+        self.verticalLayout_33.setMargin(0)
+        self.verticalLayout_33.setObjectName(_fromUtf8("verticalLayout_33"))
+        self.verticalLayout_20 = QtGui.QVBoxLayout()
         self.verticalLayout_20.setObjectName(_fromUtf8("verticalLayout_20"))
         self.horizontalLayout_48 = QtGui.QHBoxLayout()
         self.horizontalLayout_48.setObjectName(_fromUtf8("horizontalLayout_48"))
@@ -849,6 +851,16 @@ class Ui_cd_dcm(object):
         self.leRequestServiceStop.setObjectName(_fromUtf8("leRequestServiceStop"))
         self.horizontalLayout_51.addWidget(self.leRequestServiceStop)
         self.verticalLayout_20.addLayout(self.horizontalLayout_51)
+        self.verticalLayout_33.addLayout(self.verticalLayout_20)
+        self.horizontalLayout_41 = QtGui.QHBoxLayout()
+        self.horizontalLayout_41.setObjectName(_fromUtf8("horizontalLayout_41"))
+        self.label_75 = QtGui.QLabel(self.layoutWidget13)
+        self.label_75.setObjectName(_fromUtf8("label_75"))
+        self.horizontalLayout_41.addWidget(self.label_75)
+        self.leRequestServiceIndication = QtGui.QLineEdit(self.layoutWidget13)
+        self.leRequestServiceIndication.setObjectName(_fromUtf8("leRequestServiceIndication"))
+        self.horizontalLayout_41.addWidget(self.leRequestServiceIndication)
+        self.verticalLayout_33.addLayout(self.horizontalLayout_41)
         self.tblDcmCfg.addTab(self.tab_23, _fromUtf8(""))
         self.tab_24 = QtGui.QWidget()
         self.tab_24.setObjectName(_fromUtf8("tab_24"))
@@ -1082,6 +1094,7 @@ class Ui_cd_dcm(object):
         self.label_59.setObjectName(_fromUtf8("label_59"))
         self.horizontalLayout_65.addWidget(self.label_59)
         self.spbxSecurityLevel = QtGui.QSpinBox(self.layoutWidget16)
+        self.spbxSecurityLevel.setMaximum(31)
         self.spbxSecurityLevel.setObjectName(_fromUtf8("spbxSecurityLevel"))
         self.horizontalLayout_65.addWidget(self.spbxSecurityLevel)
         self.verticalLayout_26.addLayout(self.horizontalLayout_65)
@@ -1293,7 +1306,8 @@ class Ui_cd_dcm(object):
         self.label_78.setObjectName(_fromUtf8("label_78"))
         self.horizontalLayout_84.addWidget(self.label_78)
         self.spbxSessionLevel = QtGui.QSpinBox(self.layoutWidget19)
-        self.spbxSessionLevel.setMaximum(65535)
+        self.spbxSessionLevel.setMinimum(1)
+        self.spbxSessionLevel.setMaximum(4)
         self.spbxSessionLevel.setObjectName(_fromUtf8("spbxSessionLevel"))
         self.horizontalLayout_84.addWidget(self.spbxSessionLevel)
         self.verticalLayout_32.addLayout(self.horizontalLayout_84)
@@ -1507,6 +1521,11 @@ class Ui_cd_dcm(object):
         self.label_10.setText(QtGui.QApplication.translate("cd_dcm", "Size(bit):", None, QtGui.QApplication.UnicodeUTF8))
         self.label_17.setText(QtGui.QApplication.translate("cd_dcm", "Did Info:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_18.setText(QtGui.QApplication.translate("cd_dcm", "Did References:", None, QtGui.QApplication.UnicodeUTF8))
+        self.cmbxDidRef.setToolTip(QtGui.QApplication.translate("cd_dcm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Consolas\'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">If you want DID reference,please rewrite the configuration file by hand.</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget_5.setTabText(self.tabWidget_5.indexOf(self.tab_17), QtGui.QApplication.translate("cd_dcm", "General Settings", None, QtGui.QApplication.UnicodeUTF8))
         self.cbxUsePort.setText(QtGui.QApplication.translate("cd_dcm", "Use Rte Ports", None, QtGui.QApplication.UnicodeUTF8))
         self.label_19.setText(QtGui.QApplication.translate("cd_dcm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
@@ -1572,6 +1591,12 @@ class Ui_cd_dcm(object):
         self.label_42.setText(QtGui.QApplication.translate("cd_dcm", "Name:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_44.setText(QtGui.QApplication.translate("cd_dcm", "Start Protocol Callback:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_45.setText(QtGui.QApplication.translate("cd_dcm", "Stop Protocol Callback:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_75.setText(QtGui.QApplication.translate("cd_dcm", "Indication Callback:", None, QtGui.QApplication.UnicodeUTF8))
+        self.leRequestServiceIndication.setToolTip(QtGui.QApplication.translate("cd_dcm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Consolas\'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Ask for permission</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.tblDcmCfg.setTabText(self.tblDcmCfg.indexOf(self.tab_23), QtGui.QApplication.translate("cd_dcm", "Request Service", None, QtGui.QApplication.UnicodeUTF8))
         self.label_46.setText(QtGui.QApplication.translate("cd_dcm", "Name:", None, QtGui.QApplication.UnicodeUTF8))
         self.tblDcmCfg.setTabText(self.tblDcmCfg.indexOf(self.tab_24), QtGui.QApplication.translate("cd_dcm", "Routine Info", None, QtGui.QApplication.UnicodeUTF8))
@@ -1603,6 +1628,11 @@ class Ui_cd_dcm(object):
         self.label_58.setText(QtGui.QApplication.translate("cd_dcm", "Name:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_59.setText(QtGui.QApplication.translate("cd_dcm", "Level:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_61.setText(QtGui.QApplication.translate("cd_dcm", "Access Data Record Size:", None, QtGui.QApplication.UnicodeUTF8))
+        self.spbxSecurityLevelRecordSize.setToolTip(QtGui.QApplication.translate("cd_dcm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Consolas\'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">DspSecurityADRSize:I cann\'t understand, only on reference in Arccore Code,So should must set it to ZERO.</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label_60.setText(QtGui.QApplication.translate("cd_dcm", "Seed Size(byte):", None, QtGui.QApplication.UnicodeUTF8))
         self.label_62.setText(QtGui.QApplication.translate("cd_dcm", "Key Size(byte):", None, QtGui.QApplication.UnicodeUTF8))
         self.label_63.setText(QtGui.QApplication.translate("cd_dcm", "Get Seed Callback:", None, QtGui.QApplication.UnicodeUTF8))
@@ -1647,6 +1677,15 @@ class Ui_cd_dcm(object):
         self.tblDcmCfg.setTabText(self.tblDcmCfg.indexOf(self.tab_37), QtGui.QApplication.translate("cd_dcm", "Session Control", None, QtGui.QApplication.UnicodeUTF8))
         self.label_74.setText(QtGui.QApplication.translate("cd_dcm", "Name:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_78.setText(QtGui.QApplication.translate("cd_dcm", "Level:", None, QtGui.QApplication.UnicodeUTF8))
+        self.spbxSessionLevel.setToolTip(QtGui.QApplication.translate("cd_dcm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Consolas\'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">DCM_DEFAULT_SESSION = 0x01</p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">DCM_PROGRAMMING_SESSION = 0x02</p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">DCM_EXTENDED_DIAGNOSTIC_SESSION= 0x03</p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">DCM_SAFTEY_SYSTEM_DIAGNOSTIC_SESSION = 0x04</p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">....</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label_79.setText(QtGui.QApplication.translate("cd_dcm", "P2ServerMax(ms):", None, QtGui.QApplication.UnicodeUTF8))
         self.label_80.setText(QtGui.QApplication.translate("cd_dcm", "P2StartServerMax(ms):", None, QtGui.QApplication.UnicodeUTF8))
         self.tblDcmCfg.setTabText(self.tblDcmCfg.indexOf(self.tab_39), QtGui.QApplication.translate("cd_dcm", "Session", None, QtGui.QApplication.UnicodeUTF8))

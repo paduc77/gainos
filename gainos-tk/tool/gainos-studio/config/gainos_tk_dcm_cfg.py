@@ -367,21 +367,24 @@ class DcmRequestService():
             self.name = name;
             self.start = 'NULL';    # StartProtocol callback 
             self.stop  = 'NULL';    # StopProtocol callback
+            self.indication  = 'NULL';    # indication callback
         def save(self, root):
             nd = ET.Element('DcmRequestService');
             nd.attrib['name'] = str(self.name);
             nd.attrib['start'] = str(self.start);
             nd.attrib['stop'] = str(self.stop);
+            nd.attrib['indication'] = str(self.indication);
             root.append(nd);
         def parse(self, nd):
             self.name = nd.attrib['name'];
             self.start = nd.attrib['start'];
             self.stop = nd.attrib['stop'];
+            self.indication = nd.attrib['indication'];
 class DcmSecurityLevel():
     def __init__(self, name):
         self.name = name;
         self.level = 0;
-        self.recordSize = 1;
+        self.recordSize = 0;    #must be ZERO
         self.seedSize = 1;
         self.keySize = 1;
         self.getSeedCbk = 'NULL';
@@ -471,7 +474,7 @@ class DcmSessionControl():
 class DcmSession():
     def __init__(self, name):
         self.name = name;
-        self.level = 0;
+        self.level = 1; #default session
         self.P2ServerMax = 10; #ms
         self.P2StarServerMax = 10; #ms
     def save(self, root):
@@ -912,7 +915,9 @@ class gainos_tk_dcm_cfg():
             if(req.start != 'NULL'):
                 fp.write('extern Std_ReturnType %s (Dcm_ProtocolType protocolID);\n'%(req.start))
             if(req.stop != 'NULL'):
-                fp.write('extern Std_ReturnType %s (Dcm_ProtocolType protocolID);\n\n'%(req.stop))
+                fp.write('extern Std_ReturnType %s (Dcm_ProtocolType protocolID);\n'%(req.stop))
+            if(req.indication != 'NULL'):
+                fp.write('extern Std_ReturnType %s(uint8 *requestData, uint16 dataSize);\n\n'%(req.indication));
         for sesc in self.cfg.sessionControlList:
             if(sesc.GetSesChgPermission != 'NULL'):
                 fp.write('extern Std_ReturnType %s(Dcm_SesCtrlType sesCtrlTypeActive, Dcm_SesCtrlType sesCtrlTypeNew);\n'%(sesc.GetSesChgPermission));
@@ -1084,13 +1089,19 @@ class gainos_tk_dcm_cfg():
         str += '};\n\n'
         fp.write(str);
         #------------------ DIDs ----------
+        fp.write('extern const Dcm_DspDidType DspDidList[];\n');
+        for did in self.cfg.didList:
+            fp.write("""const Dcm_DspDidType* %s_dididRefList[] =
+{
+    &DspDidList[DCM_DID_LIST_EOL_INDEX]  //add did ref by hand please,If you need it
+};\n"""%(did.name));
         str = 'const Dcm_DspDidType DspDidList[] = { \n';
         for did in self.cfg.didList:
             str += '\t{ // %s,\n'%(did.name);
             str += '\t\t/* DspDidUsePort = */ %s,/* Value is not configurable */\n'%(TRUE(did.usePort));
             str += '\t\t/* DspDidIdentifier = */ %s,\n'%(did.id);
             str += '\t\t/* DspDidInfoRef = */ &DspDidInfoList[%s], //%s\n'%(gcfindIndex(self.cfg.didInfoList, did.didInfoRef), did.didInfoRef);
-            str += '\t\t/* DspDidRef = */ NULL, //%s\n'%('I cann\'t understand');
+            str += '\t\t/* DspDidRef = */ %s_dididRefList,\n'%(did.name);
             str += '\t\t/* DspDidSize = */ %s,\n'%(did.size);
             str += '\t\t/* /* DspDidReadDataLengthFnc = */ %s,\n'%(did.DspDidReadDataLengthFnc);
             str += '\t\t/* /* DspDidConditionCheckReadFnc = */ %s,\n'%(did.DspDidConditionCheckReadFnc);
@@ -1145,7 +1156,7 @@ class gainos_tk_dcm_cfg():
             for auth in rtninfo.AuthorizationList:
                 str = 'const Dcm_DspSessionRowType *%s_sessionRefList[] = {\n'%(rtninfo.name)
                 for ses in auth.sessionRefList:
-                    str += '\t&DspSessionList[%s],//%s\n'%(gcfindIndex(self.cfg.sessionControlList, ses), ses)
+                    str += '\t&DspSessionList[%s],//%s\n'%(gcfindIndex(self.cfg.sessionList, ses), ses)
                 str += '\t&DspSessionList[DCM_SESSION_EOL_INDEX]\n'
                 str +='};\n'
                 fp.write(str);
@@ -1293,12 +1304,25 @@ Dcm_DslBufferRuntimeType rxBufferParams_%s =
             str += '\t{ // %s\n'%(reqser.name);
             str += '\t\t/* StartProtocol = */ %s,\n'%(reqser.start);
             str += '\t\t/* StopProtocol = */ %s,\n'%(reqser.stop);
-            str += '\t\t/* Arc_EOL = */ FALSE'
+            str += '\t\t/* Arc_EOL = */ FALSE\n'
             str += '\t},\n'
         str += '\t{ // %s\n'%('Dummy For EOL');
         str += '\t\t/* StartProtocol = */ %s,\n'%('NULL');
         str += '\t\t/* StopProtocol = */ %s,\n'%('NULL');
-        str += '\t\t/* Arc_EOL = */ TRUE'
+        str += '\t\t/* Arc_EOL = */ TRUE\n'
+        str += '\t}\n'
+        str += '};\n\n';
+        fp.write(str);
+        str = 'const Dcm_DslServiceRequestIndicationType DCMServiceRequestIndicationList[] = {\n'
+        for reqser in self.cfg.requestServiceList:
+            if(reqser.indication != 'NULL'):
+                str += '\t{ // %s\n'%(reqser.name);
+                str += '\t\t/* Indication = */ %s,\n'%(reqser.indication);
+                str += '\t\t/* Arc_EOL = */ FALSE\n'
+                str += '\t},\n'
+        str += '\t{ // %s\n'%('Dummy For EOL');
+        str += '\t\t/* Indication = */ NULL,\n'
+        str += '\t\t/* Arc_EOL = */ TRUE\n'
         str += '\t}\n'
         str += '};\n\n';
         fp.write(str);
@@ -1488,7 +1512,7 @@ const Dcm_DslType Dsl = {
     /* DslDiagResp = */ &DiagResp,
     /* DslProtocol = */ &DslProtocol,
     /* DslProtocolTiming = */ &ProtocolTiming,
-    /* DslServiceRequestIndication = */ NULL,
+    /* DslServiceRequestIndication = */ DCMServiceRequestIndicationList,
     /* DslSessionControl = */ SessionControlList
 };
 
