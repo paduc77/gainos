@@ -77,6 +77,10 @@ Std_ReturnType vDid_1_ReadDataLength_Cbk(uint16 *didLength){
         *didLength = 4;    //for write test
     }
     callcnt++;
+    if(callcnt == 2)
+    {
+       callcnt = 0; 
+    }
     return E_OK;
 }
 Std_ReturnType vDid_1_ConditionCheckRead_Cbk(Dcm_NegativeResponseCodeType *errorCode){
@@ -112,11 +116,38 @@ Std_ReturnType vDid_1_WriteData_Cbk(uint8 *data, uint16 dataLength,
 }
 Std_ReturnType vDid_1_GetScalingInfo_Cbk(uint8 *scalingInfo, 
                 Dcm_NegativeResponseCodeType *errorCode){
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    scalingInfo[0] = 0xEE;
+    printf("in  vDid_1_GetScalingInfo_Cbk().\r\n[");
     return E_OK;
 }
 Std_ReturnType vRequestService_1_Indication(uint8 *requestData, uint16 dataSize)
 {
+    printf("in  vRequestService_1_Indication().\r\n[");
     return E_OK;
+}
+Std_ReturnType vRoutine_1_Start(uint8 *inBuffer, uint8 *outBuffer, 
+                            Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    outBuffer[0] = 0xBF;
+    printf("in  vRoutine_1_Start().\r\n[");
+    return E_OK;   
+}
+Std_ReturnType vRoutine_1_Stop(uint8 *inBuffer, uint8 *outBuffer, 
+                            Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    outBuffer[0] = 0xEF;
+    printf("in  vRoutine_1_Stop().\r\n[");
+    return E_OK; 
+}
+Std_ReturnType vRoutine_1_RequestResult(uint8 *outBuffer, Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    outBuffer[0] = 0xDB;
+    printf("in  vRoutine_1_RequestResult().\r\n[");
+    return E_OK; 
 }
 /* Dcm Example Initialise Routine.
  * ≥ı ºªØCan°¢CanIf°¢PduR∫ÕDCM £¨
@@ -203,7 +234,7 @@ static void ex1ReadDataById(void)
     PduInfoType pduinfo;
     sduData[0] = ISO15765_TPCI_SF | 3;
     sduData[1] = 0x22;
-    sduData[2] = 0x99;   //id = 0x9999;
+    sduData[2] = 0x09;   //id = 0x0999;
     sduData[3] = 0x99;
     pduinfo.SduDataPtr = sduData;
     pduinfo.SduLength = 4;
@@ -216,7 +247,7 @@ static void ex1WriteDataById(void)
     PduInfoType pduinfo;
     sduData[0] = ISO15765_TPCI_SF | 7;
     sduData[1] = 0x2E;
-    sduData[2] = 0x99;   //id = 0x9999;
+    sduData[2] = 0x09;   //id = 0x0999;
     sduData[3] = 0x99;
     sduData[4] = 0x11;
     sduData[5] = 0x22;
@@ -224,6 +255,101 @@ static void ex1WriteDataById(void)
     sduData[7] = 0x44;
     pduinfo.SduDataPtr = sduData;
     pduinfo.SduLength = 8;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+static void ex1RoutineControl(void)
+{
+    uint8  sduData[8];
+    static uint8 callcnt = 0;
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 4;
+    sduData[1] = 0x31;
+    callcnt++;
+    switch(callcnt)
+    {
+        case 1:
+            sduData[2] = 0x01;  //start routine
+        break;
+        case 2:
+            sduData[2] = 0x02;  //stop routine
+        break;
+        case 3:
+            sduData[2] = 0x03;  //request routine result
+        break;
+        default:
+            callcnt = 3;
+            return;
+        break;
+    }
+    sduData[3] = 0x08;   //id = 0x0888;
+    sduData[4] = 0x88;
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 5;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+
+static void ex1ReadScalingDataById(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 3;
+    sduData[1] = 0x24;
+    sduData[2] = 0x09;   //id = 0x0999;
+    sduData[3] = 0x99;
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 4;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+
+static void ex1TesterPresent(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 2;
+    sduData[1] = 0x3e;
+    sduData[2] = 0x00; 
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 3;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+
+static void ex1EcuReset(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    static uint8 callcnt = 0;
+    sduData[0] = ISO15765_TPCI_SF | 2;
+    sduData[1] = 0x11;
+    callcnt++;
+    switch(callcnt)
+    {
+        case 1:
+            sduData[2] = 0x01;  //hard reset,infact only this sub function was supported.
+                // But as Mcu was not integrated,So this API has no effect.
+        break;
+        case 2:
+            sduData[2] = 0x02;  //key off on reset
+        break;
+        case 3:
+            sduData[2] = 0x03;  //soft reset
+        break;
+        case 4:
+            sduData[2] = 0x04;
+        break;
+        case 5:
+            sduData[2] = 0x05;
+        break;
+        default:
+            callcnt = 5;
+            return;
+        break;
+    }  
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 3;
     
     CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
 }
@@ -297,19 +423,35 @@ void DcmEx1Sender(void)
         break;
         case 4:
             ex1ReadDataById();
+        break;
         case 5:
             ex1WriteDataById();
         break;
+        case 6:
+            ex1RoutineControl();
+        break; 
+        case 7:
+            ex1ReadScalingDataById();
+        break;
+        case 8:
+            ex1TesterPresent();
+        break;
+        case 9:
+            ex1EcuReset();
+        break;
         default:
-            callcnt = 5;
+            callcnt = 3;
         break;
     }     
 }
 //============================= OS TASK ==============================
 extern void DcmEx1Init(void);
+#include "osek_os.h"
+extern CCB knl_ccb_table[];
 TASK(vTaskInit)
 {
 	StatusType ercd;
+	knl_ccb_table[0].curvalue = 60000 -1000;
 	(void)SetRelAlarm(ID_vAlarmReceiver,50,10);
 	(void)SetRelAlarm(ID_vAlarmSender,100,200);
 	(void)SetRelAlarm(ID_vAlarmMainFunction,200,1); //so cyclic 1 Ticks = 4ms
@@ -341,15 +483,6 @@ TASK(vTaskMainFunction)
     /* Add your task special code here, but Don't delete this Task declaration.*/
     //(void)printf("vTaskMainFunction is running.\r\n");
     DcmEx1MainFunction();
-    (void)TerminateTask();
-}
-
-TASK(vTaskIdle)
-{
-    /* Add your task special code here, but Don't delete this Task declaration.*/
-	for(;;)
-	{
-	}
     (void)TerminateTask();
 }
 

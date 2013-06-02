@@ -61,25 +61,29 @@ EXPORT TickType knl_diff_tick(TickType curval, TickType almval, TickType maxval2
 		return(curval - almval);
 	}
 	else {
-		return(maxval2 - almval + curval);
+		return(maxval2 - almval + curval + 1);
 	}
 }
 
 EXPORT void knl_alm_insert(ALMCB *almcb,CCB* ccb)
 {
-    QUEUE* q = ccb->almque.next;
+    QUEUE* q;
     if(almcb->time < ccb->curvalue)
-    {   /* It's an overflowed alarm,So Skip all the no overflowed one*/
-        for ( ; q != &ccb->almque; q = q->next ) {
-    		if ( ccb->curvalue < ((ALMCB*)q)->time ) {
+    {   /* It's an overflowed alarm,search from previous */
+        for ( q = ccb->almque.prev; q != &ccb->almque; q = q->prev ) {
+    		if ( ((almcb->time > ((ALMCB*)q)->time)) || (ccb->curvalue <= ((ALMCB*)q)->time) ) {
     			break;
     		}
 	    }
+	    q = q->next;
     }
-    for ( ; q != &ccb->almque; q = q->next ) {
-		if ( almcb->time < ((ALMCB*)q)->time ) {
-			break;
-		}
+    else
+    {
+        for ( q = ccb->almque.next; q != &ccb->almque; q = q->next ) {
+    		if ( (almcb->time < ((ALMCB*)q)->time) || (ccb->curvalue > ((ALMCB*)q)->time) ) {
+    			break;
+    		}
+        }
     }
     QueInsert(&almcb->almque,q);
 }
