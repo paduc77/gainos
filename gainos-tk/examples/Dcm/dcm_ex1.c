@@ -118,9 +118,41 @@ Std_ReturnType vDid_1_GetScalingInfo_Cbk(uint8 *scalingInfo,
                 Dcm_NegativeResponseCodeType *errorCode){
     *errorCode = DCM_E_POSITIVERESPONSE;
     scalingInfo[0] = 0xEE;
-    printf("in  vDid_1_GetScalingInfo_Cbk().\r\n[");
+    printf("in  vDid_1_GetScalingInfo_Cbk().\r\n");
     return E_OK;
 }
+Std_ReturnType vDid_1_FreezeCurrentState_cbk(uint8 *controlOptionRecord, 
+        uint8 *controlEnableMaskRecord, uint8 *controlStatusRecord,
+        Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    printf("in  vDid_1_FreezeCurrentState_cbk().\r\n");
+    return E_OK;
+}
+Std_ReturnType vDid_1_ResetToDefault_Cbk(uint8 *controlOptionRecord, 
+        uint8 *controlEnableMaskRecord, uint8 *controlStatusRecord, 
+        Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    printf("in  vDid_1_ResetToDefault_Cbk().\r\n");
+    return E_OK;
+}        
+Std_ReturnType vDid_1_ReturnControl_Cbk(uint8 *controlOptionRecord, 
+        uint8 *controlEnableMaskRecord, uint8 *controlStatusRecord, 
+        Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    printf("in  vDid_1_ReturnControl_Cbk().\r\n");
+    return E_OK;
+}                
+Std_ReturnType vDid_1__ShortTermAdj_cbk(uint8 *controlOptionRecord, 
+        uint8 *controlEnableMaskRecord, uint8 *controlStatusRecord, 
+        Dcm_NegativeResponseCodeType *errorCode)
+{
+    *errorCode = DCM_E_POSITIVERESPONSE;
+    printf("in  vDid_1__ShortTermAdj_cbk().\r\n");
+    return E_OK;
+}        
 Std_ReturnType vRequestService_1_Indication(uint8 *requestData, uint16 dataSize)
 {
     printf("in  vRequestService_1_Indication().\r\n[");
@@ -172,6 +204,11 @@ void DcmEx1MainFunction(void)
     Dcm_MainFunction();
 }
 #define ISO15765_TPCI_SF        0x00  /* Single Frame */
+#define ISO15765_TPCI_FF        0x10  /* First Frame */
+#define ISO15765_TPCI_CF        0x20  /* Consecutive Frame */
+#define ISO15765_TPCI_FC        0x30  /* Flow Control */
+#define ISO15765_TPCI_DL        0x7   /* Single frame data length mask */
+#define ISO15765_TPCI_FS_MASK   0x0F  /* Flowcontrol status mask */
 static void ex1DiagnosticSessionControl(void)
 {
     static uint8 callcnt = 0;
@@ -228,14 +265,40 @@ static void ex1SecurityAccess_SendKey(void)
     
     CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
 }
-static void ex1ReadDataById(void)
+static void ex1ReadDatabyIdPeriod(uint16 id)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 3;
+    sduData[1] = 0x2A;
+    sduData[2] = DCM_PERIODICTRANSMIT_FAST_MODE;
+    sduData[3] = (uint8)(id)&0xFFU;
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 4;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+static void ex1ReadDatabyIdPeriodStop(uint16 id)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 3;
+    sduData[1] = 0x2A;
+    sduData[2] = DCM_PERIODICTRANSMIT_STOPSENDING_MODE;
+    sduData[3] = (uint8)(id)&0xFFU;
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 4;
+    
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+static void ex1ReadDataById(uint16 id)
 {
     uint8  sduData[8];
     PduInfoType pduinfo;
     sduData[0] = ISO15765_TPCI_SF | 3;
     sduData[1] = 0x22;
-    sduData[2] = 0x09;   //id = 0x0999;
-    sduData[3] = 0x99;
+    sduData[2] = (uint8)(id>>8)&0xFFU;   //id = ;
+    sduData[3] = (uint8)(id)&0xFFU;
     pduinfo.SduDataPtr = sduData;
     pduinfo.SduLength = 4;
     
@@ -353,6 +416,61 @@ static void ex1EcuReset(void)
     
     CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
 }
+void ex1DefineDDDByID(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_FF | 0;
+    sduData[1] = 8;
+    sduData[2] = 0x2c;
+    sduData[3] = 0x01;
+    sduData[4] = 0xF2; //Id
+    sduData[5] = 0x01;
+    sduData[6] = 0x09; // Src Id
+    sduData[7] = 0x99; 
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 8;
+    /* Send FF */
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+    
+    WaitEvent(0x01);  //Wait Flow Control 
+    ClearEvent(0x01);
+    sduData[0] = ISO15765_TPCI_CF | 1;
+    sduData[1] = 1;   //position
+    sduData[2] = 5;   //size
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 3;
+    /* Send CF */
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+static void ex1ClearDefineDDDByID(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 4;
+    sduData[1] = 0x2c;
+    sduData[2] = 0x03;
+    sduData[3] = 0xF2; //Id
+    sduData[4] = 0x01;
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 5;
+    /* Send SF */
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}
+static void ex1IoControl(void)
+{
+    uint8  sduData[8];
+    PduInfoType pduinfo;
+    sduData[0] = ISO15765_TPCI_SF | 4;
+    sduData[1] = 0x2F;
+    sduData[2] = 0x09; //Id
+    sduData[3] = 0x99; 
+    sduData[4] = 0x01; //option
+    pduinfo.SduDataPtr = sduData;
+    pduinfo.SduLength = 5;
+    /* Send SF */
+    CanIf_Transmit(vCanIf_Channel_0, &pduinfo);
+}    
 // this is the Client reveiver
 void CanIf_UserRxIndication(uint8 channel, PduIdType pduId, const uint8 *sduPtr,
                            uint8 dlc, Can_IdType canId)
@@ -371,11 +489,11 @@ void CanIf_UserRxIndication(uint8 channel, PduIdType pduId, const uint8 *sduPtr,
     printf("]\r\n");
     //if it is FF or CF,send FC 
     switch (sduPtr[0] & 0x30) {
-	case 0x10:       //First Frame
+	case ISO15765_TPCI_FF:       //First Frame
 		SetEvent(ID_vTaskReceiver,0x01);
 		fcnt = 0;
 		break;
-	case 0x20:       //Consecutive Frame
+	case ISO15765_TPCI_CF:       //Consecutive Frame
 		fcnt ++;
 		if(3 == fcnt)
 		{
@@ -383,6 +501,9 @@ void CanIf_UserRxIndication(uint8 channel, PduIdType pduId, const uint8 *sduPtr,
 	    	fcnt = 0;
 		}
 		break;
+	case ISO15765_TPCI_FC:    //Flow Control
+	    SetEvent(ID_vTaskSender,0x01);
+	    break;
 	}   
 }
 static void ex1SendFC(void)
@@ -422,7 +543,7 @@ void DcmEx1Sender(void)
             ex1DiagnosticSessionControl();    //now,unlocked, can do session control on level 1   
         break;
         case 4:
-            ex1ReadDataById();
+            ex1ReadDataById(0x999u);
         break;
         case 5:
             ex1WriteDataById();
@@ -439,19 +560,35 @@ void DcmEx1Sender(void)
         case 9:
             ex1EcuReset();
         break;
+        case 10:
+            ex1DefineDDDByID();
+        break;
+        case 11:
+            ex1ReadDataById(0xF201u);
+            callcnt++;//skip case 12 test
+        break;
+        case 12:
+            ex1ClearDefineDDDByID();
+        break;
+        case 13:
+            ex1ReadDatabyIdPeriod(0xF201);
+        break;
+        case 14:
+            ex1ReadDatabyIdPeriodStop(0xF201);
+        break;
+        case 15:
+            ex1IoControl();
+        break;
         default:
-            callcnt = 3;
+            callcnt = 14;
         break;
     }     
 }
 //============================= OS TASK ==============================
 extern void DcmEx1Init(void);
-#include "osek_os.h"
-extern CCB knl_ccb_table[];
 TASK(vTaskInit)
 {
 	StatusType ercd;
-	knl_ccb_table[0].curvalue = 60000 -1000;
 	(void)SetRelAlarm(ID_vAlarmReceiver,50,10);
 	(void)SetRelAlarm(ID_vAlarmSender,100,200);
 	(void)SetRelAlarm(ID_vAlarmMainFunction,200,1); //so cyclic 1 Ticks = 4ms
@@ -459,14 +596,21 @@ TASK(vTaskInit)
 	DcmEx1Init();
     /* Add your task special code here, but Don't delete this Task declaration.*/
     (void)printf("vTaskInit is running.\r\n");
-
+    //(void)ActivateTask(ID_vTaskSender);
+    //(void)ActivateTask(ID_vTaskReceiver);
+    //(void)ActivateTask(ID_vTaskMainFunction);
     (void)TerminateTask();
 }
 extern void DcmEx1Sender(void);
 TASK(vTaskSender)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
-    DcmEx1Sender();
+    
+    //for(;;)
+    {
+        DcmEx1Sender();
+        //SleepTask(200);
+    }
     (void)TerminateTask();
 }
 extern void Dcm_Ex1Receiver(void);
@@ -474,7 +618,11 @@ TASK(vTaskReceiver)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
     //(void)printf("vTaskReceiver is running.\r\n");
-    Dcm_Ex1Receiver();
+    //for(;;)
+    {
+        Dcm_Ex1Receiver();
+       // SleepTask(10);
+    }    
     (void)TerminateTask();
 }
 extern void DcmEx1MainFunction(void);
@@ -482,7 +630,11 @@ TASK(vTaskMainFunction)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
     //(void)printf("vTaskMainFunction is running.\r\n");
-    DcmEx1MainFunction();
+    //for(;;)
+    {
+        DcmEx1MainFunction();
+        //SleepTask(1);
+    }     
     (void)TerminateTask();
 }
 
