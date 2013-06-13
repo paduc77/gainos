@@ -6,28 +6,26 @@
  */
 #include "Os.h"
 #include <stdio.h>
-
-#include "osek_os.h"
+#include "Can.h"
+#include "CanIf.h"
+#include "PduR.h"
+#include "CanNm.h"
 
 TASK(vTaskSender)
 {
-    /* Add your task special code here, but Don't delete this Task declaration.*/
-    printf("vTaskSender is running.\r\n");
     (void)TerminateTask();
 }
 
 TASK(vTaskReceiver)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
-    printf("vTaskReceiver is running.\r\n");
     (void)TerminateTask();
 }
 
 TASK(vTaskMainFunction)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
-    printf("vTaskMainFunction is running.\r\n");
-    //(void)ActivateTask(ID_vTaskInit);
+    CanNm_MainFunction_All_Channels();
     (void)TerminateTask();
 }
 ALARM(vAlarmSender)
@@ -52,4 +50,26 @@ void StartupHook(void)
     (void)SetRelAlarm(ID_vAlarmReceiver,50,10);
 	(void)SetRelAlarm(ID_vAlarmSender,100,200);
 	(void)SetRelAlarm(ID_vAlarmMainFunction,200,1); //so cyclic 1 Ticks = 4ms
+	Can_Init(&Can_ConfigData); 
+    CanIf_Init(&CanIf_Config);
+    CanNm_Init(&CanNm_Config);
+    CanIf_SetControllerMode(vCanIf_Channel_0,CANIF_CS_STARTED);
+    CanIf_SetControllerMode(vCanIf_Channel_1,CANIF_CS_STARTED);
 }
+
+void CanIf_UserRxIndication(uint8 channel, PduIdType pduId, const uint8 *sduPtr,
+                           uint8 dlc, Can_IdType canId)
+{
+    int len = dlc;
+    char* ptr= sduPtr;
+    static int fcnt = 0;
+    printf("channel=%d,pduId=%d,canId=%d.\r\r\n",(int)channel,(int)pduId,(int)canId);
+    printf("[");      
+    while(len > 0)
+    {
+        printf("0x%x,",(uint8)(*ptr));
+        ptr++;
+        len--;
+    }
+    printf("]\r\n");
+}    
