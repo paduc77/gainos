@@ -78,6 +78,16 @@ StatusType ActivateTask ( TaskType TaskID )
 	END_CRITICAL_SECTION;
 
 	Error_Exit:
+	#if(cfgOS_ERROR_HOOK == STD_ON)
+	if(E_OK != ercd)
+	{
+    	BEGIN_CRITICAL_SECTION;
+    	_errorhook_svcid = OSServiceId_ActivateTask;
+    	_errorhook_par1.tskid = TaskID;
+    	ErrorHook(ercd);
+    	END_CRITICAL_SECTION;
+	}
+	#endif /* cfgOS_ERROR_HOOK */
 	return ercd;
 }
 
@@ -136,6 +146,15 @@ StatusType TerminateTask ( void )
 	/* No return */
 
 	Error_Exit:
+	#if(cfgOS_ERROR_HOOK == STD_ON)
+    if(E_OK != ercd)
+	{
+    	BEGIN_CRITICAL_SECTION;
+    	_errorhook_svcid = OSServiceId_TerminateTask;
+    	ErrorHook(ercd);
+    	END_CRITICAL_SECTION;
+    }
+	#endif /* cfgOS_ERROR_HOOK */
 	return ercd;
 }
 
@@ -238,6 +257,16 @@ StatusType ChainTask ( TaskType TaskID )
 
 	/* No return */
 	Error_Exit:
+	#if(cfgOS_ERROR_HOOK == STD_ON)
+	if(E_OK != ercd)
+	{
+    	BEGIN_CRITICAL_SECTION;
+    	_errorhook_svcid = OSServiceId_ChainTask;
+    	_errorhook_par1.tskid = TaskID;
+    	ErrorHook(ercd);
+    	END_CRITICAL_SECTION;
+    }
+	#endif /* cfgOS_ERROR_HOOK */
     return ercd;
 }
 
@@ -283,6 +312,15 @@ StatusType Schedule ( void )
     knl_reschedule();
 	END_CRITICAL_SECTION;
 	Error_Exit:
+	#if(cfgOS_ERROR_HOOK == STD_ON)
+	if(E_OK != ercd)
+	{
+    	BEGIN_CRITICAL_SECTION;
+    	_errorhook_svcid = OSServiceId_Schedule;
+    	ErrorHook(ercd);
+    	END_CRITICAL_SECTION;
+	}
+	#endif /* cfgOS_ERROR_HOOK */
     return ercd;
 }
 
@@ -374,10 +412,28 @@ StatusType GetTaskState ( TaskType TaskID,TaskStateRefType State )
 	    *State = SUSPENDED;
 	}
 Error_Exit:
+	#if(cfgOS_ERROR_HOOK == STD_ON)
+	if(E_OK != ercd)
+	{
+    	BEGIN_CRITICAL_SECTION;
+    	_errorhook_svcid = OSServiceId_GetTaskState;
+    	_errorhook_par1.tskid = TaskID;
+    	_errorhook_par2.p_state = State;
+    	ErrorHook(ercd);
+    	END_CRITICAL_SECTION;
+	}
+	#endif /* cfgOS_ERROR_HOOK */
 	return ercd;
 }
 
 #if(cfgOS_TK_EXTEND == STD_ON)
+//Extended Task: SleepTask
+//Sleep current running task for a period of time determined by parameter <Timeout>
+//but if <Timeout> == TMO_FEVR, the current running task will sleep forever.
+//when task is in sleeping state, you can wake up it by calling WakeUpTask(TaskID).
+//But this API is really not advised, as it is "»­ÉßÌí×ã" for OSEK os.
+//And also may it be conflict with WaitEvent/SetEvent.
+//File related: knl_timer.h/c, knl_wait.h/c
 StatusType SleepTask ( TickType Timeout )
 {
     StatusType ercd = E_OK;
@@ -401,9 +457,16 @@ StatusType SleepTask ( TickType Timeout )
 
     END_CRITICAL_SECTION;
 Error_Exit:
+    //not supported for error hook
 	return ercd;
 }
 
+//Extended Task: WakeUpTask
+//Wake up the task which is in sleeping state so that the sleeping task 
+//can prepare to resume to run.
+//But this API is really not advised, as it is "»­ÉßÌí×ã" for OSEK os.
+//And also may it be conflict with WaitEvent/SetEvent.
+//File related: knl_timer.h/c, knl_wait.h/c
 StatusType WakeUpTask ( TaskType TaskID )
 {
     StatusType ercd = E_OK;
@@ -429,6 +492,7 @@ StatusType WakeUpTask ( TaskType TaskID )
 	END_CRITICAL_SECTION;
 
 Error_Exit:
+    //not supported for error hook
 	return ercd;
 }
 #endif /* cfgOS_TK_EXTEND */

@@ -20,12 +20,10 @@
  */
 #include "portable.h"
 
-#define cfgTMP_STACK_SZ 1024
-LOCAL 	UB	knl_tmp_stack[cfgTMP_STACK_SZ];
-/*
- *    Function Name : disint
- *    Description   : Disable external interrupt,CPSR interrupt flag is in  disabled status.
- */
+//system stack malloc
+LOCAL 	UB	knl_system_stack[cfgOS_SYSTEM_STACK_SIZE];
+
+//save the old cpu status register and disable the interrupt
 EXPORT asm imask_t disint(void)
 {
 nofralloc
@@ -34,11 +32,7 @@ nofralloc
    blr
 }
 
-/*
- *    Function Name : enaint
- *    Description   : Enable external interrupt (restore to original state),
- *                    Updates CPSR interrupt disabled flag with the intsts interrupt flag.
- */
+//restore the cpu status register value <MSR> saved by disint
 EXPORT asm void enaint(imask_t mask)
  {
  nofralloc
@@ -46,6 +40,7 @@ EXPORT asm void enaint(imask_t mask)
 	blr
  }
 
+ //get cpu status register <MSR>
 EXPORT asm imask_t knl_getPRIMASK ( void )
 {
 nofralloc
@@ -99,6 +94,8 @@ void TickTimer_SetFreqHz(int Freq)
 }
 #endif /* configTickSrc */
 
+
+//mean start the SystemTick ISR timer.
 EXPORT void knl_start_hw_timer( void )
 {
 	asm
@@ -111,10 +108,6 @@ EXPORT void knl_start_hw_timer( void )
 	TickTimer_SetFreqHz(1000);
 }
 
-/*
- * Create stack frame for task startup
- *	Call from 'make_dormant()'
- */
 #define  configUSE_FPU	0
 /* Definitions to set the initial MSR of each task. */
 #define portCRITICAL_INTERRUPT_ENABLE	( 1UL << 17UL )
@@ -133,20 +126,34 @@ EXPORT void knl_start_hw_timer( void )
                               portMACHINE_CHECK_ENABLE | portAPU_PRESENT | portFCM_FPU_PRESENT )
 extern const unsigned _SDA_BASE_;
 extern const unsigned _SDA2_BASE_;
+//when task need starting to run, prepare its context.
+//as for ucos and freeRTOS,task start policy is asynchronous,
+//so need to prepare its really running environment firstly
+//and the start to dispatch it(just like resume to run).
+//But for OSEK os, the much more real time consideration, treat 
+//start to run and resume to run differently...
 EXPORT void knl_setup_context( TCB *tcb )
 {
+	#if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
 	tcb->tskctxb.ssp = tcb->isstack;
+	#endif
     tcb->tskctxb.dispatcher = knl_activate_r;
 }
+
+//default SystemTick ISR handler,which also is an example for other ISR
+//the system counter whose id is 0 will be processed.
 EXPORT ISR(SystemTick)
 {
 	EnterISR();
 	#if(cfgOS_TK_EXTEND == STD_ON)
+	//really, the extended feature for OSEK is not advised to be used.
 	knl_timer_handler();
 	#endif
 	(void)IncrementCounter(0);
 	ExitISR();
 }
+
+//when task start to run
 EXPORT void knl_activate_r(void)
 {
 	/* This is the most easiest Way to get Internal Resourse and
@@ -155,9 +162,14 @@ EXPORT void knl_activate_r(void)
 	enaint(portINITIAL_MSR); // enable interrupt
     knl_ctxtsk->task();
 }
+
+//when task resume to run
 EXPORT __asm void knl_dispatch_r(void)
 {
 nofralloc
+	#if(cfgOS_SHARE_SYSTEM_STACK == STD_ON)
+	lwz   r1, SP_OFFSET(r8);     /* Restore 'ssp' from TCB */	
+	#endif
 	lwz    r11,XTMODE(r1);
 	lis    r12,knl_taskmode@h;
 	stw    r11,knl_taskmode@l(r12);  /* restore taskmode */  
@@ -169,6 +181,7 @@ nofralloc
     addi  r1,r1, STACK_FRAME_SIZE
   	rfi
 }
+
 #pragma section RX ".__exception_handlers"
 #pragma push /* Save the current state */
 __declspec (section ".__exception_handlers") extern long EXCEPTION_HANDLERS;  
@@ -177,13 +190,18 @@ __declspec (section ".__exception_handlers") extern long EXCEPTION_HANDLERS;
 __declspec(interrupt)
 __declspec (section ".__exception_handlers")
 LOCAL void l_dispatch0(void);
+
+//knl_force_dispatch() will be called when the current running task terminate,
+//then the next high ready task can start to run.
 EXPORT __asm void knl_force_dispatch(void)
 {
 nofralloc
-	wrteei  0;		/* Interrupt disable */ 
-	lis		r1,knl_tmp_stack@h			
-	ori    r1,r1,knl_tmp_stack@l
-	addi	r1,r1,cfgTMP_STACK_SZ	/* Set temporal stack */
+	wrteei  0;		/* Interrupt disable */
+	#if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF) 
+	lis		r1,knl_system_stack@h			
+	ori     r1,r1,knl_system_stack@l
+	addi	r1,r1,cfgOS_SYSTEM_STACK_SIZE	/* Set temporal stack */
+	#endif
 	/* as curtsk is no longer running,so no need to care about the context */
 	li     r11,1
 	lis    r12,knl_dispatch_disabled@h
@@ -194,6 +212,19 @@ nofralloc
 	wrteei  1;		                         /* Interrupt enable */ 
 	b	   l_dispatch0  	  
 }
+
+#if(cfgOS_SHARE_SYSTEM_STACK == STD_ON)
+//load the system stack which is shared by tasks,ISRs and also the os dispatcher
+//just before start the dispatcher.
+EXPORT __asm void knl_start_dispatch(void)
+{
+    lis		r1,knl_system_stack@h			
+	ori     r1,r1,knl_system_stack@l
+	addi	r1,r1,cfgOS_SYSTEM_STACK_SIZE   /* Set system stack */
+    b knl_force_dispatch
+}
+#endif
+
 EXPORT __asm void knl_dispatch_entry(void)
 {
 nofralloc
@@ -235,6 +266,18 @@ nofralloc
   	lis  r5,knl_schedtsk@h;    
   	ori  r5,r5,knl_schedtsk@l;  /* R5 = &schedtsk */
 	
+	#if(cfgOS_SHARE_SYSTEM_STACK == STD_ON)
+	wrteei  0;		/* Interrupt disable */
+	lwz   r8,0(r5)
+  	cmpwi r8,0; 	/* Is there 'schedtsk'? */
+  	bne	 l_dispatch2;
+    //if(knl_schedtsk==(void *)0)
+    //{   //only reload system stack when os idle.
+        lis		r1,knl_system_stack@h			
+		ori     r1,r1,knl_system_stack@l
+		addi	r1,r1,cfgOS_SYSTEM_STACK_SIZE /* Set system stack */    	
+    #endif
+    
 l_dispatch1:
 	wrteei  0;		/* Interrupt disable */ 
 	
@@ -247,13 +290,15 @@ l_dispatch1:
   	nop
   	nop
   	b	 l_dispatch1 
-
+	//}
 l_dispatch2:                   /* Switch to 'schedtsk' */
 	lis  r6,knl_ctxtsk@h;
 	stw  r8,knl_ctxtsk@l(r6);  /* ctxtsk = schedtsk */
 	
+	#if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
 	lwz   r1, SP_OFFSET(r8);     /* Restore 'ssp' from TCB */	
-
+	#endif
+	
 	li     r11,0
 	lis    r12,knl_dispatch_disabled@h
 	stw    r11,knl_dispatch_disabled@l(r12)  /* Dispatch enable */

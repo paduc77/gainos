@@ -25,6 +25,11 @@
 #include "knl_resource.h"
 #include "knl_timer.h"
 #include "portable.h"
+
+#if(cfgOS_ERROR_HOOK == STD_ON)
+EXPORT OSServiceIdType	_errorhook_svcid;
+EXPORT _ErrorHook_Par	_errorhook_par1, _errorhook_par2, _errorhook_par3;
+#endif
 /* |------------------+------------------------------------------------------| */
 /* | Syntax:          | void StartOS ( AppModeType <Mode> )                  | */
 /* |------------------+------------------------------------------------------| */
@@ -61,8 +66,12 @@ void StartOS ( AppModeType AppMode )
     knl_start_hw_timer();     
 #endif
     /* OS424: The first call to StartOS() (for starting the Operating System) shall not
-       return. */    
+       return. */ 
+    #if(cfgOS_SHARE_SYSTEM_STACK == STD_ON)
+    knl_start_dispatch();
+    #else 
     knl_force_dispatch();
+    #endif
 }
 
 /* |------------------+------------------------------------------------------------------| */

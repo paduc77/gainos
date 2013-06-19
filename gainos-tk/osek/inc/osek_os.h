@@ -45,20 +45,47 @@
 #define TTW_MPL		    0x00004000UL             /* Variable size memory pool wait */
 
 #define DeclareTask(TaskName)  TaskType TaskName
-#define GenTaskStack(TaskName,stksz)  static uint32 TaskStack##TaskName[stksz/4]
+#if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
+#define GenTaskStack(TaskName)  static uint32 TaskStack##TaskName[TaskName##StkSz/4]
 /* Task Generate information */
-#define GenTaskInfo(TaskName,Priority,stksz,Attribute,flgid,maxact,runpri) \
+//here runpri is special, it's the priority when task start to run
+//so by change the value of runpri, it's easy to support the internal resourse
+//but now not supported by gainos-studio,so sorry
+//-- do it by hand
+//for example:Internal resource 1<vInRes1> is shared by task 1,2,3
+//and task 1,2,3 each has initial priority 15, 9 ,7
+//so you can config vInRes1 ceiling priority to 6, and change each of task 1,2,3's
+//runpri from initial priority to 6.
+//So that task 1,2,3 now can share vInRes1 safely.
+//and also it's easy to change runprio to OS_HIGHEST_PRIORITY to make a task
+//non-preemtable.
+//by default,runprio is equal to task initial priority<itskpri> 
+#define GenTaskInfo(TaskName,Attribute,flgid,runpri) \
     {                                                                   \
         /* tskatr */   Attribute,                                       \
             /* task */     TaskMain##TaskName,                          \
-            /* itskpri */Priority,                                      \
-            /* sstksz */   stksz,                                       \
-            /* isstack */  &TaskStack##TaskName[stksz/4-1],             \
+            /* itskpri */  TaskName##Pri,                               \
+            /* sstksz */   TaskName##StkSz,                             \
+            /* isstack */  &TaskStack##TaskName[TaskName##StkSz/4-1],   \
             /* flgid */  flgid,                                         \
-            /* maxact */  maxact,                                       \
+            /* maxact */  TaskName##MaxAct,                             \
             /* runpri */ runpri                                         \
             }
-
+#else
+#define GenTaskStack(TaskName)
+ /* Task Generate information */
+#define GenTaskInfo(TaskName,Attribute,flgid,runpri) \
+    {                                                                   \
+        /* tskatr */   Attribute,                                       \
+            /* task */     TaskMain##TaskName,                          \
+            /* itskpri */  TaskName##Pri,                               \
+            /* sstksz */   TaskName##StkSz,                             \
+            /* isstack */  NULL,                                        \
+            /* flgid */  flgid,                                         \
+            /* maxact */  TaskName##MaxAct,                             \
+            /* runpri */ runpri                                         \
+            }
+#endif  /* cfgOS_SHARE_SYSTEM_STACK */
 #define GenAlarmInfo(AlarmName,Owner)           \
     {                                           \
         /* owner */ ID_##Owner,                 \
@@ -138,8 +165,10 @@ typedef struct task_control_block{
     //{{    Yes, the 6 var help the os run fast by a more usage of RAM
     TaskType    tskid;      /* Task ID */
     FP          task;       /* Task Entry */
+    #if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
     VP          isstack;    /* Init Task Stack Top Pointer*/
     UINT		stksz;		/* User stack size (byte) */
+    #endif
     ATR 	    tskatr;		/* Task attribute */
     PRI         runpri;     /* Task priority When it Start To Running */
     //}}
