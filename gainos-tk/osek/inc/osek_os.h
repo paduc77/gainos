@@ -28,6 +28,9 @@
 #define BITMAPSZ	( sizeof(UINT) * 8 )
 #define NUM_BITMAP	( ((cfgOSEK_MAX_PRIO+1) + BITMAPSZ - 1) / BITMAPSZ )
 #define NUM_PRI     (cfgOSEK_MAX_PRIO+1)
+//tkernel priority mechanism adapter to osek os priority
+//the 0 is the lowest priority
+#define PRIORITY(__priority) (cfgOSEK_MAX_PRIO - (__priority) )
 
 /* Wait factor tskwait */
 #define TTW_SLP		    0x00000001UL             /* Wait caused by wakeup wait */
@@ -88,9 +91,12 @@
 #endif  /* cfgOS_SHARE_SYSTEM_STACK */
 #define GenAlarmInfo(AlarmName,Owner)           \
     {                                           \
-        /* owner */ ID_##Owner,                 \
-            /* almhdr */ AlarmMain##AlarmName   \
-            }
+        /* owner */ Owner,                 \
+        /* almhdr */ AlarmMain##AlarmName,   \
+        /* time */ AlarmName##_AutoStartTime,   \
+        /* cycle */ AlarmName##_AutoCycleTime,   \
+        /* mode */ AlarmName##Mode   \
+    }
 
 #define GenAlarmBaseInfo(MaxAllowedValue,TicksPerBase,MinCycle) \
     {                                                           \
@@ -187,6 +193,17 @@ typedef struct task_control_block{
 	QUEUE resque;	/* queue to hold resources */
 }TCB;
 
+/* This type if for BCC2 and ECC2 with basic tasks whose activation is more than 
+ * 1, so should have a fifoque to record the order of task activation per priority.
+ */
+typedef struct _fifo_queue
+{
+    VP* const       fifoque; /* hold the queue element */
+    const INT       length;  /* the queue length */
+    INT       head;    /* the place to pop */
+    INT       tail;    /* the place to push */
+}FIFOQUE;
+
 /*
  * Definition of ready queue structure
  *	In the ready queue, the task queue 'tskque' is provided per priority.
@@ -204,8 +221,12 @@ typedef struct task_control_block{
  */
 typedef	struct ready_queue {
 	PRI	top_priority;		/* Highest priority in ready queue */
+    #if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_OFF)
 	QUEUE	tskque[NUM_PRI];	/* Task queue per priority */
 	TCB	*   null;			/* When the ready queue is empty, */
+    #else
+    FIFOQUE tskque[NUM_PRI];    /* Task queue per priority */
+    #endif /* cfgOSEK_FIFO_QUEUE_PER_PRIORITY */
 	UINT	bitmap[NUM_BITMAP];	/* Bitmap area per priority */
 //	TCB	*klocktsk;	/* READY task with kernel lock */
 } RDYQUE;
@@ -221,6 +242,9 @@ typedef struct alarm_generate_info
 {
     CounterType owner; /* Alarm Owner -> Counter */
     FP          almhdr;  /* Alarm handler */
+    TickType    time;
+    TickType    cycle;
+    AppModeType mode;
 }T_GALM;
 
 /* Alarm Control Block */

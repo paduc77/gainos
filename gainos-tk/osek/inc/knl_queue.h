@@ -87,7 +87,6 @@ Inline void QueRemove(QUEUE* entry)
 }                                                             
 #endif
 
-/* ============================ FUNCTIONs    ========================================== */
 #if 0
 /*
  * Remove top entry
@@ -110,4 +109,70 @@ Inline QUEUE* QueRemoveNext( QUEUE *que )
 	return entry;
 }
 #endif
+
+Inline void  FifoQueInit(FIFOQUE* que)
+{
+	que->tail = que->head = 0;
+}
+
+/* push the element entry to the tail of the fifo queue */
+Inline void FifoQuePush(VP entry,FIFOQUE* que) 
+{
+    que->fifoque[que->tail] = entry;
+	/* no care of overflow */
+	if((que->tail+1) < que->length)
+	{
+		que->tail++;
+	}
+	else
+	{
+		que->tail = 0;
+	}	
+}
+/* push the element entry to the head of the fifo queue */
+Inline void FifoQueAltPush(VP entry,FIFOQUE* que) 
+{
+	/* no care of overflow */
+	if((que->head-1) < 0)
+	{
+		que->head = que->length - 1;
+	}
+	else
+	{
+		que->head--;
+	}
+	que->fifoque[que->head] = entry;
+}
+/* pop the head element from the fifo queue */
+Inline void FifoQuePop(FIFOQUE* que) 
+{
+	/* no care of overflow */
+	if(que->head == que->tail)
+	{
+		return;
+	}
+		
+    //que->fifoque[que->head] = NULL; //for debug purpose
+	
+	if((que->head+1) < que->length)
+	{
+		que->head++;
+	}
+	else
+	{
+		que->head = 0;
+	}
+}
+/* polling the head element from the fifo queue */
+Inline VP FifoQuePoll(FIFOQUE* que) 
+{
+	if(que->head == que->tail)
+	{
+		return NULL;
+	}
+	return que->fifoque[que->head];
+}
+
+#define isFifoQueEmpty(__que)   ((boolean)(( (__que)->head == (__que)->tail )))
+
 #endif /* KNL_QUEUE_H_H */

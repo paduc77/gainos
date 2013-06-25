@@ -68,6 +68,9 @@ StatusType ActivateTask ( TaskType TaskID )
 	    if(tcb->actcnt < knl_gtsk_table[TaskID].maxact)
 	    {
 	        tcb->actcnt += 1;
+	        #if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_ON)
+	        knl_ready_queue_insert(&knl_ready_queue, tcb);
+	        #endif
 	    }
 	    else
 	    #endif
@@ -139,7 +142,11 @@ StatusType TerminateTask ( void )
 	if(knl_ctxtsk->actcnt > 0)
 	{
 	    knl_ctxtsk->actcnt -= 1;
+	    #if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_OFF)
 	    knl_make_active(knl_ctxtsk);
+	    #else
+	    knl_make_ready(knl_ctxtsk);
+	    #endif
 	}
     #endif
 	knl_force_dispatch();
@@ -231,6 +238,9 @@ StatusType ChainTask ( TaskType TaskID )
     	    if(tcb->actcnt < knl_gtsk_table[TaskID].maxact)
     	    {
     	        tcb->actcnt += 1;
+    	        #if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_ON)
+    	        knl_ready_queue_insert(&knl_ready_queue, tcb);
+    	        #endif
     	    }
     	    else
     	    #endif
@@ -246,7 +256,11 @@ StatusType ChainTask ( TaskType TaskID )
     	if(knl_ctxtsk->actcnt > 0)
     	{
     	    knl_ctxtsk->actcnt -= 1;
+    	    #if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_OFF)
     	    knl_make_active(knl_ctxtsk);
+    	    #else
+    	    knl_make_ready(knl_ctxtsk);
+    	    #endif
     	}
         #endif
         if (TS_DORMANT == state) {
@@ -303,14 +317,22 @@ StatusType ChainTask ( TaskType TaskID )
 /* |------------------+-------------------------------------------------------------| */
 StatusType Schedule ( void )
 {
-    StatusType ercd = E_NOT_OK;
+    StatusType ercd = E_OK;
+    PRI itskpri;
 	OS_CHECK_EXT(!in_indp(),E_OS_CALLEVEL);
 	OS_CHECK_EXT(isQueEmpty(&knl_ctxtsk->resque),E_OS_RESOURCE);
-	//As Internal Resource was not supported,So in fact this API only has effect on
-	//Non-preemtable Task.
+
 	BEGIN_CRITICAL_SECTION;
-    knl_reschedule();
+	itskpri = knl_gtsk_table[knl_ctxtsk->tskid].itskpri;
+	//if task has internal resource and premtable
+	if(((knl_ctxtsk->tskatr&NON_PREEMTABLE) == 0)    //task preemtable
+    	&&(knl_ready_queue.top_priority <= itskpri))
+	{  //this only happends when a preemtable task has an internal resource
+    	knl_ctxtsk->priority = itskpri;   //reset it to initial priority
+        knl_reschedule();
+    }
 	END_CRITICAL_SECTION;
+	knl_ctxtsk->priority = knl_ctxtsk->runpri; //so get the internal resource again
 	Error_Exit:
 	#if(cfgOS_ERROR_HOOK == STD_ON)
 	if(E_OK != ercd)

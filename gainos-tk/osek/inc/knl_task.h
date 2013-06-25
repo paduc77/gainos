@@ -23,6 +23,7 @@
 #define KNL_TASK_H_H
 /* ============================ INCLUDEs ========================================== */
 #include "osek_os.h"
+#include "knl_queue.h"
 
 /* ============================ MACROs    ========================================== */
 /*
@@ -63,8 +64,11 @@ Inline TCB* knl_ready_queue_top( RDYQUE *rq )
 //	if ( rq->klocktsk != NULL ) {
 //		return rq->klocktsk;
 //	}
-
+	#if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_OFF)
 	return (TCB*)rq->tskque[rq->top_priority].next;
+	#else
+	return (TCB*)FifoQuePoll(&rq->tskque[rq->top_priority]);
+	#endif
 }
 
 /* ============================ DATAs    ========================================== */
@@ -85,6 +89,7 @@ IMPORT void knl_ready_queue_insert( RDYQUE *rq, TCB *tcb );
 IMPORT void knl_ready_queue_insert_top( RDYQUE *rq, TCB *tcb );
 IMPORT void knl_ready_queue_delete( RDYQUE *rq, TCB *tcb );
 IMPORT void knl_reschedule( void );
+IMPORT void knl_make_ready( TCB *tcb );
 IMPORT void knl_make_active( TCB *tcb );
 IMPORT void knl_make_runnable( TCB *tcb );
 IMPORT void knl_search_schedtsk(void);

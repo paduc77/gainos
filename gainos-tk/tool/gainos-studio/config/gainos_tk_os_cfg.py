@@ -7,7 +7,7 @@
  */
 """
 import xml.etree.ElementTree as ET
-from Common import *
+from common.Common import *
 class General():
     def __init__(self, chip):
         self.chip = chip;
@@ -15,7 +15,7 @@ class General():
         self.max_pri = 32;
         self.os_class = 'ECC2';
         self.status = 'STANDARD';
-        self.sched_policy = 'FULL_PREEMPTIVE_SCHEDULE';
+        self.sched_policy = 'MIXED_PREEMPTIVE_SCHEDULE';
         self.tk_extend = False;
         self.os_startup_hook = True;
         self.os_shutdown_hook = False;
@@ -64,15 +64,40 @@ class Resource():
     def __init__(self, name, ceilprio):
         self.name=name;
         self.ceilprio=ceilprio;
+        self.taskList = [];
     def save(self, root):
         nd = ET.Element('Resource');
         nd.attrib['name'] = str(self.name);
-        nd.attrib['ceilprio'] = str(self.ceilprio);  
+        nd.attrib['ceilprio'] = str(self.ceilprio); 
+        nd2 = ET.Element('TaskList');
+        for tsk in self.taskList:
+            nd2.append(ET.Element(str(tsk)));
+        nd.append(nd2);
         root.append(nd); 
     def parse(self, nd):
         self.name = nd.attrib['name'];
         self.ceilprio = int(nd.attrib['ceilprio']);
-
+        for nd2 in nd.find('TaskList'):
+            self.taskList.append(nd2.tag);
+class InternalResource():
+    def __init__(self, name, ceilprio):
+        self.name=name;
+        self.ceilprio=ceilprio;
+        self.taskList = [];
+    def save(self, root):
+        nd = ET.Element('InternalResource');
+        nd.attrib['name'] = str(self.name);
+        nd.attrib['ceilprio'] = str(self.ceilprio);
+        nd2 = ET.Element('TaskList');
+        for tsk in self.taskList:
+            nd2.append(ET.Element(str(tsk)));
+        nd.append(nd2);
+        root.append(nd); 
+    def parse(self, nd):
+        self.name = nd.attrib['name'];
+        self.ceilprio = int(nd.attrib['ceilprio']);
+        for nd2 in nd.find('TaskList'):
+            self.taskList.append(nd2.tag);
 class Event():
     def __init__(self, name, mask):
         self.name=name;
@@ -92,32 +117,44 @@ class Task():
         self.name=name;
         self.prio=prio;
         self.stksz=stksz;
-        self.autostart=True;
+        self.autostart=False;
         self.maxactcnt = 1;
-        self.appmode = 'OSDEFAULTAPPMODE';
+        self.appmode = [];
         self.preemtable = True;
         self.eventList=[];
+        #just for oil adapter
+        self.resourceList = [];
+        self.internalResourceList = [];
     
     def save(self, root):
         nd = ET.Element('Task');
         nd.attrib['name'] = str(self.name);
         nd.attrib['prio'] = str(self.prio);
         nd.attrib['stksz'] = str(self.stksz);
+        nd.attrib['autostart'] = str(self.autostart);
         nd.attrib['maxactcnt'] = str(self.maxactcnt);
-        nd.attrib['appmode'] = str(self.appmode);
+        #nd.attrib['appmode'] = str(self.appmode);
+        nd2 = ET.Element('appmode');
+        for mode in self.appmode:
+            nd2.append(ET.Element(str(mode)));
+        nd.append(nd2);
         nd.attrib['preemtable'] = str(self.preemtable);
+        nd2 = ET.Element('eventList');
         for obj in self.eventList:
-            obj.save(nd);
+            obj.save(nd2);
+        nd.append(nd2);
         root.append(nd);
     
     def parse(self, nd):
         self.name = nd.attrib['name'];
         self.prio = int(nd.attrib['prio']);
         self.stksz = int(nd.attrib['stksz']);
+        self.autostart = bool(nd.attrib['autostart']);
         self.maxactcnt = int(nd.attrib['maxactcnt']);
-        self.appmode = str(nd.attrib['appmode']);
+        for nd2 in nd.find('appmode'):
+            self.appmode.append(nd2.tag);
         self.preemtable = bool(nd.attrib['preemtable']);
-        for nd2 in nd:
+        for nd2 in nd.find('eventList'):
             obj = Event('', 0);
             obj.parse(nd2);
             self.eventList.append(obj);
@@ -150,6 +187,10 @@ class Alarm():
         self.type='callback'; 
         self.task='';
         self.event=''; 
+        self.autostart = False
+        self.alarmTime = 100
+        self.cycleTime = 100
+        self.appmode = [];
     def save(self, root):
         nd = ET.Element('Alarm');
         nd.attrib['name'] = str(self.name);
@@ -157,13 +198,25 @@ class Alarm():
         nd.attrib['type'] = str(self.type);
         nd.attrib['task'] = str(self.task);
         nd.attrib['event'] = str(self.event);
+        nd.attrib['autostart'] = str(self.autostart);
+        nd.attrib['alarmTime'] = str(self.alarmTime);
+        nd.attrib['cycleTime'] = str(self.cycleTime);
+        nd2 = ET.Element('appmode');
+        for mode in self.appmode:
+            nd2.append(ET.Element(str(mode)));
+        nd.append(nd2);
         root.append(nd); 
     def parse(self, nd):
         self.name = nd.attrib['name'];
         self.counter = nd.attrib['counter'];
         self.type = nd.attrib['type'];
         self.task = nd.attrib['task'];
-        self.event = nd.attrib['event'];      
+        self.event = nd.attrib['event'];
+        self.autostart = bool(nd.attrib['autostart']);      
+        self.alarmTime = int(nd.attrib['alarmTime']);      
+        self.cycleTime = int(nd.attrib['cycleTime']);
+        for nd2 in nd.find('appmode'):
+            self.appmode.append(nd2.tag);      
 class AppMode():
     def __init__(self, name):
         self.name = name;
@@ -178,10 +231,50 @@ class gainos_tk_os_obj():
         self.general = General(chip);
         self.taskList=[];
         self.resourceList=[];
+        self.resourceList.append(Resource('RES_SCHEDULER', 1));
         self.counterList = [];
         self.alarmList=[];
         self.appmodeList = [];
         self.appmodeList.append(AppMode('OSDEFAULTAPPMODE'));
+        self.internalResourceList = [];
+        ### for oil usage
+        self.eventList=[];
+
+    def resolveOsCC(self):
+        self.general.os_class = 'BCC'; #start
+        for tsk in self.taskList:
+            if(len(tsk.eventList)):
+                self.general.os_class = 'ECC'
+                break;
+        for tsk in self.taskList:
+            if(len(tsk.eventList) == 0  and tsk.maxactcnt > 1):
+                self.general.os_class = self.general.os_class[:3]+'2'
+                return
+        for tsk in self.taskList:
+            for tsk2 in self.taskList:
+                if(tsk != tsk2):
+                    if(tsk.prio == tsk2.prio):
+                        self.general.os_class = self.general.os_class[:3]+'2'
+                        return
+        self.general.os_class = self.general.os_class[:3]+'1'
+    def isFifoQueue(self):
+        for tsk in self.taskList:
+            for tsk2 in self.taskList:
+                if(tsk != tsk2):
+                    if(tsk.prio == tsk2.prio):
+                        if(tsk.maxactcnt > 1 or tsk2.maxactcnt > 1):
+                            return True
+        return False
+    def resolveFifoQueLength(self, priority):
+        length = 0;
+        for tsk in self.taskList:
+            if(tsk.prio == priority):
+                length += tsk.maxactcnt;
+        if(length == 0):
+            return 0;
+        else:
+            return length+1
+                
 
 class gainos_tk_os_cfg():
     def __init__(self, chip):
@@ -206,6 +299,12 @@ class gainos_tk_os_cfg():
         
         nd = ET.Element('ResurceList');
         for res in self.cfg.resourceList:
+            if(res.name != 'RES_SCHEDULER'):
+                res.save(nd);
+        root.append(nd);
+        
+        nd = ET.Element('InternalResurceList');
+        for res in self.cfg.internalResourceList:
             res.save(nd);
         root.append(nd);
         
@@ -239,6 +338,12 @@ class gainos_tk_os_cfg():
             obj = Resource('unname', 0);
             obj.parse(nd);
             self.cfg.resourceList.append(obj);
+            
+        list = root.find('InternalResurceList');
+        for nd in list:
+            obj = InternalResource('unname', 0);
+            obj.parse(nd);
+            self.cfg.internalResourceList.append(obj);
             
         list = root.find('CounterList');
         for nd in list:
@@ -280,6 +385,7 @@ class gainos_tk_os_cfg():
         fp.write('#define NONE_PREEMPTIVE_SCHEDULE  2\n');
         fp.write('#define cfgOS_SCHEDULE_POLICY %s\n'%(self.cfg.general.sched_policy));
         fp.write('#define cfgOS_CONFORMANCE_CLASS %s\n'%(self.cfg.general.os_class))
+        fp.write('#define cfgOSEK_FIFO_QUEUE_PER_PRIORITY %s\n'%(gSTD_ON(self.cfg.isFifoQueue())))
         fp.write('#define cfgOS_STATUS_LEVEL OS_STATUS_%s\n'%(self.cfg.general.status));
         fp.write('#define cfgOS_TK_EXTEND %s\n'%(gSTD_ON(self.cfg.general.tk_extend)));
         fp.write('#define cfgOS_SYSTEM_STACK_SIZE %s\n'%(self.cfg.general.system_stack_size));
@@ -301,18 +407,27 @@ class gainos_tk_os_cfg():
         for appmode in self.cfg.appmodeList:
             if(appmode.name != 'OSDEFAULTAPPMODE'):
                 fp.write('#define %s %s\n'%(appmode.name,hex(id)));
-                id += 1;
+                id *= 2;
         #===============================Task ================================
         fp.write('/* =====================  TASK  ========================== */\n');
         fp.write('#define cfgOSEK_MAX_PRIO %s\n'%(self.cfg.general.max_pri));
         fp.write('#define cfgOSEK_TASK_NUM  %s\n'%(len(self.cfg.taskList)));
         id = 0;
         for obj in self.cfg.taskList:
-            fp.write('#define ID_%s %s\n'%(obj.name,id))
-            fp.write('#define %sPri %s\n'%(obj.name, obj.prio))
-            fp.write('#define %sStkSz %s\n'%(obj.name,obj.stksz))
-            fp.write('#define %sMaxAct %s\n'%(obj.name,obj.maxactcnt))
+            fp.write('#define %s %s\n'%(obj.name,id))
             id+=1;
+        for obj in self.cfg.taskList:
+            fp.write('#define %sPri PRIORITY(%s)\n'%(obj.name, obj.prio))
+        for obj in self.cfg.taskList:
+            fp.write('#define %sStkSz %s\n'%(obj.name,obj.stksz))
+        for obj in self.cfg.taskList:
+            fp.write('#define %sMaxAct %s\n'%(obj.name,obj.maxactcnt-1))
+        for obj in self.cfg.taskList:
+            str = ' OSNONEAPPMODE '
+            if(obj.autostart):
+                for mode in obj.appmode:
+                    str += '| %s '%(mode);
+            fp.write('#define %sMode (%s)\n'%(obj.name,str));
         fp.write('#if !defined(MACROS_ONLY)\n')
         for obj in self.cfg.taskList:
             fp.write('IMPORT TASK(%s);\n'%(obj.name));
@@ -332,13 +447,22 @@ class gainos_tk_os_cfg():
         fp.write('#define cfgOSEK_COUNTER_NUM %s\n'%len((self.cfg.counterList)));
         id = 0;
         for obj in self.cfg.counterList:
-            fp.write('#define ID_%s %s\n'%(obj.name,id));
+            fp.write('#define %s %s\n'%(obj.name,id));
             id += 1;
         fp.write('#define cfgOSEK_ALARM_NUM %s\n'%(len(self.cfg.alarmList)));
         id = 0;
         for obj in self.cfg.alarmList:
-            fp.write('#define ID_%s %s\n'%(obj.name,id));
+            fp.write('#define %s %s\n'%(obj.name,id));
             id+=1;
+        for obj in self.cfg.alarmList:
+            fp.write('#define %s_AutoStartTime %s\n'%(obj.name,obj.alarmTime));
+            fp.write('#define %s_AutoCycleTime %s\n'%(obj.name,obj.cycleTime));
+        for obj in self.cfg.alarmList:
+            str = ' OSNONEAPPMODE '
+            if(obj.autostart):
+                for mode in obj.appmode:
+                    str += '| %s '%(mode);
+            fp.write('#define %sMode (%s)\n'%(obj.name,str));    
         fp.write('#if !defined(MACROS_ONLY)\n')
         for obj in self.cfg.alarmList:
             fp.write('IMPORT ALARM(%s);\n'%(obj.name));
@@ -348,10 +472,25 @@ class gainos_tk_os_cfg():
         fp.write('#define cfgOSEK_RESOURCE_NUM %s\n'%(len(self.cfg.resourceList)));
         id = 0;
         for obj in self.cfg.resourceList:
-            fp.write('#define ID_%s %s\n'%(obj.name,id));
-            id += 0;
+            fp.write('#define %s %s\n'%(obj.name,id));
+            if(obj.name == 'RES_SCHEDULER'):
+                fp.write('#define %sPri PRIORITY(%s)\n'%(obj.name,'cfgOSEK_MAX_PRIO'));
+            else:
+                fp.write('#define %sPri PRIORITY(%s)\n'%(obj.name,obj.ceilprio))
+            id += 1;
+            fp.write('\t//it had been assigned to [ ')
+            for tsk in obj.taskList:
+                fp.write(tsk+', ')
+            fp.write(']\n');
+        fp.write('\n/*  ================   INTERNAL RESOURCE ================= */\n');
+        for inres in self.cfg.internalResourceList:
+            fp.write('#define %sPri PRIORITY(%s)\n'%(inres.name,inres.ceilprio))
+            fp.write('\t//it had been assigned to [ ')
+            for tsk in inres.taskList:
+                fp.write(tsk+', ')
+            fp.write(']\n');
         #=========================== End =========================
-        fp.write('/*  ====================  HOOKs    ======================= */\n');
+        fp.write('\n/*  ====================  HOOKs    ======================= */\n');
         fp.write('#define cfgOS_STACK_USAGE_CHECK %s\n'%(gSTD_ON(self.cfg.general.os_stack_overflow_check)));
         fp.write('#define cfgOS_SHUT_DOWN_HOOK %s\n'%(gSTD_ON(self.cfg.general.os_shutdown_hook)));
         fp.write('#define cfgOS_START_UP_HOOK %s\n'%(gSTD_ON(self.cfg.general.os_startup_hook)));
@@ -376,7 +515,7 @@ class gainos_tk_os_cfg():
         for tsk in self.cfg.taskList:
             stack += 'GenTaskStack(%s);\n'%(tsk.name);
             gtsk += '\tGenTaskInfo(%s,'%(tsk.name);
-            gtsk += '%s'%(tsk.appmode);
+            gtsk += '%sMode'%(tsk.name);
             if(self.cfg.general.sched_policy == 'MIXED_PREEMPTIVE_SCHEDULE'):
                 if(tsk.preemtable):
                     gtsk += '|PREEMTABLE,'
@@ -391,36 +530,50 @@ class gainos_tk_os_cfg():
             else:
                 gtsk += 'INVALID_EVENT,'
             #gtsk += '%s,'%(tsk.maxactcnt);
-            if(self.cfg.general.sched_policy == 'MIXED_PREEMPTIVE_SCHEDULE'):
-                if(tsk.preemtable):
-                    gtsk += '%sPri),\n'%(tsk.name);
-                else:
-                    gtsk += 'OS_HIGHEST_PRIORITY),\n'
-            elif(self.cfg.general.sched_policy == 'FULL_PREEMPTIVE_SCHEDULE'):
-                gtsk += '%sPri),\n'%(tsk.name);
-            elif(self.cfg.general.sched_policy == 'NONE_PREEMPTIVE_SCHEDULE'):
-                gtsk += 'OS_HIGHEST_PRIORITY),\n'
+            gtsk += '%s),\n'%(self.resolveTaskRunPriority(tsk));
         gtsk += '};\n\n';
         fp.write(stack);
         fp.write(gtsk);
         #================== Counter ==========================
-        str = 'EXPORT const AlarmBaseType knl_almbase_table[cfgOSEK_COUNTER_NUM]=\n{\n';
-        for obj in self.cfg.counterList:
-            str += '\tGenAlarmBaseInfo(%s,%s,%s), /* %s */\n'%(obj.max, obj.tpb, obj.min, obj.name);
-        str+='};\n\n'
-        fp.write(str);
+        if(len(self.cfg.counterList) >0):
+            str = 'EXPORT const AlarmBaseType knl_almbase_table[cfgOSEK_COUNTER_NUM]=\n{\n';
+            for obj in self.cfg.counterList:
+                str += '\tGenAlarmBaseInfo(%s,%s,%s), /* %s */\n'%(obj.max, obj.tpb, obj.min, obj.name);
+            str+='};\n\n'
+            fp.write(str);
         #==================== ALARM =======================
-        str = 'EXPORT const T_GALM knl_galm_table[cfgOSEK_ALARM_NUM]=\n{\n';
-        for obj in self.cfg.alarmList:
-            str += '\tGenAlarmInfo(%s,%s),\n'%(obj.name, obj.counter);
-        str+='};\n\n'
-        fp.write(str);
+        if(len(self.cfg.alarmList) >0):
+            str = 'EXPORT const T_GALM knl_galm_table[cfgOSEK_ALARM_NUM]=\n{\n';
+            for obj in self.cfg.alarmList:
+                str += '\tGenAlarmInfo(%s,%s),\n'%(obj.name, obj.counter);
+            str+='};\n\n'
+            fp.write(str);
         #======================= RESOURCE ==============
         str = 'EXPORT const PRI knl_gres_table[cfgOSEK_RESOURCE_NUM]=\n{\n'
         for obj in self.cfg.resourceList:
-            str += '\t/* ceilpri */ %s,  /* %s */\n'%(obj.ceilprio, obj.name);
+            str += '\t/* ceilpri */ %sPri,  /* %s */\n'%(obj.name, obj.name);
         str+='};\n\n'
         fp.write(str);
+        #======================== Ready Queue =================
+        if(self.cfg.isFifoQueue()):
+            for pri in range(0, self.cfg.general.max_pri+1):
+                length = self.cfg.resolveFifoQueLength(self.cfg.general.max_pri-pri)
+                if(length > 0):
+                    fp.write('LOCAL TCB* knl_fifoque_%s[%s];\n'%(pri, length))
+        if(self.cfg.isFifoQueue()):
+            str = 'EXPORT RDYQUE	knl_ready_queue = {\n'
+            str += '\t/* top_priority = */ 0,\n'
+            str += '\t{/* tskque */\n'
+            for pri in range(0, self.cfg.general.max_pri+1):
+                length = self.cfg.resolveFifoQueLength(self.cfg.general.max_pri-pri)
+                if(length > 0):
+                    str += '\t\t{/* fifoque = */knl_fifoque_%s,'%(pri)
+                else:
+                    str += '\t\t{/* fifoque = */ NULL,'
+                str += '\t\t/* length = */ %s},//PRIORITY(%s)\n'%(length, self.cfg.general.max_pri-pri)
+            str += '\t},\n'
+            str +='};\n\n'
+            fp.write(str);
         #================================= end ===============
         fp.close();
     
@@ -448,14 +601,14 @@ ALARM(%s)
 ALARM(%s)
 {
     /* Alarm Type: Task, you still can add your special code here.*/
-    (void)ActivateTask(ID_%s);
+    (void)ActivateTask(%s);
 }"""%(obj.name, obj.task));
             elif(obj.type == 'event'):
                 fp.write("""
 ALARM(%s)
 {
     /* Alarm Type: Event, you still can add your special code here.*/
-    (void)SetEvent(ID_%s,%s);
+    (void)SetEvent(%s,%s);
 }"""%(obj.name, obj.task, obj.event));
 
         if(self.cfg.general.os_startup_hook):
@@ -489,3 +642,16 @@ void ErrorHook(StatusType Error)
 {
     /* Add Code Here */
 }\n""")
+    def resolveTaskRunPriority(self, tsk):
+        if(self.cfg.general.sched_policy == 'MIXED_PREEMPTIVE_SCHEDULE'):
+            if(tsk.preemtable == False):
+                return 'OS_HIGHEST_PRIORITY'
+        elif(self.cfg.general.sched_policy == 'NONE_PREEMPTIVE_SCHEDULE'):
+            return 'OS_HIGHEST_PRIORITY'
+        #now first resolve if it has internal resource
+        for inres in self.cfg.internalResourceList:
+            for tskname in inres.taskList:
+                if(tskname == tsk.name):
+                    return '%sPri'%(inres.name);
+        return '%sPri'%(tsk.name)
+            

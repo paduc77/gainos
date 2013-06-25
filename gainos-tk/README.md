@@ -90,6 +90,7 @@ gainos-tk
 	首先要安装 python27 < http://www.python.org/download/releases/2.7/ >
 	其次安装 PyQt4-4.10.1-gpl-Py2.7-Qt4.8.4  < http://www.riverbankcomputing.com/software/pyqt/download >
 	程序入口为 main.py, 终端模式下，python main.py 运行之
+	或者使用tool/gainos-studio/start gainos studio.bat双击运行，但需要保证python目录位于环境变量path之中。
 	如果您希望开发gainos-studio，推荐安装Eric，详情请百度。
 	
 ##  3.实现的另一个参考 toppers_osek 
@@ -129,12 +130,17 @@ gainos-tk
 	显然上述情景仅发生于ECC1和ECC2，那么，我可以先将共用堆栈在BCC1和BCC2上予以实现。
 	至于ECC1和ECC2的情景下，如何实现，待往后慢慢研究。
 **成果：**
-	已经初步实现在9S12和mpc56xx平台该功能的支持。在Arm Cortex M7平台上，由于历史遗留问题，必须创建vTaskIdle任务的原因，
-	暂不支持。
+	已经初步实现在9S12和mpc56xx平台该功能的支持。在Arm Cortex M7平台上，由于历史遗留问题，必须创建
+	vTaskIdle任务的原因，暂不支持。
 ###  2.解决Arm Cortex M7平台现移植必须创建vTaskIdle的问题
 **希望有热心的网友能够给予帮助，个人讨厌研究CPU内核相关的事情**
+###  3.优先级对应问题
+	由于gainos-tk继承t-kernel的很多东西，优先级也一样，跟随tkernel，其优先级的值越小，优先级越高。
+	而OSEK OS规范却规定0为最低优先级，数值越大，优先级越高。现在是时候解决这个问题了。
+	我认为更改算法是很愚蠢的事情，tkernel的这个优先级管理算法我认为是足够优秀的，所以呢，我选择更改工具，
+	或者说呢，进行优先级变更，反正，gainos-tk是通过工具来配置的。
 
-#gainso-studio 成果展示
+#gainos-studio 成果展示
 ### gainos-tk osek os的配置界面
 ![gainos os][logo1]
 [logo1]:http://f.hiphotos.bdimg.com/album/s%3D1100%3Bq%3D90/sign=d9a841482e2eb938e86d7ef3e552be44/8b82b9014a90f603fec2deee3812b31bb051ed2d.jpg

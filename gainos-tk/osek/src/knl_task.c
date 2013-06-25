@@ -27,7 +27,9 @@
 EXPORT INT	knl_dispatch_disabled;
 EXPORT TCB	*knl_ctxtsk;
 EXPORT TCB	*knl_schedtsk;
+#if(cfgOSEK_FIFO_QUEUE_PER_PRIORITY == STD_OFF)
 EXPORT RDYQUE	knl_ready_queue;
+#endif
 EXPORT	INT	    knl_taskindp = 0;
 EXPORT	UINT	knl_taskmode;
 EXPORT TCB	    knl_tcb_table[cfgOSEK_TASK_NUM];
@@ -44,6 +46,8 @@ EXPORT void knl_task_initialize( void )
 	knl_dispatch_disabled = DDS_ENABLE;
 }
 
+//no matter what,will put current ready task to the ready queue
+//and the high ready task <toptsk> will be dispatched.
 EXPORT void knl_reschedule( void )
 {
 	TCB	*toptsk;
@@ -57,12 +61,10 @@ EXPORT void knl_reschedule( void )
 	}
 }
 
-/*
- * Prepare task execution.
- */
-EXPORT void knl_make_active( TCB *tcb )
+EXPORT void knl_make_ready( TCB *tcb )
 {
-	tcb->priority = knl_gtsk_table[tcb->tskid].itskpri;
+    tcb->state = TS_READY;
+    tcb->priority = knl_gtsk_table[tcb->tskid].itskpri;
 	#if(cfgOSEK_EVENTFLAG_NUM > 0)
     {
         ID flgid;
@@ -79,17 +81,22 @@ EXPORT void knl_make_active( TCB *tcb )
 
 	/* Set context to start task */
 	knl_setup_context(tcb);
-
+}
+/*
+ * Prepare task execution.
+ */
+EXPORT void knl_make_active( TCB *tcb )
+{
+    knl_make_ready(tcb);
 	knl_make_runnable(tcb);
 }
 /*
  * Set task to runnable state.
- *	Update the task state and insert in the ready queue. If necessary,
+ *	Insert in the ready queue. If necessary,
  *	update 'knl_schedtsk' and request to start task dispatcher.
  */
 EXPORT void knl_make_runnable( TCB *tcb )
 {
-	tcb->state = TS_READY;
 	if(NULL != knl_schedtsk)
 	{
 	    if(tcb->priority < knl_schedtsk->priority)
@@ -145,7 +152,7 @@ EXPORT void knl_task_init(void)
         #endif
         tcb->runpri = knl_gtsk_table[i].runpri;
         tcb->actcnt = 0;
-        if((tcb->tskatr&APPMODEMASK) == knl_app_mode)
+        if(((tcb->tskatr&APPMODEMASK)&knl_app_mode) != 0 )
         {
         	knl_make_active(tcb);
         }
