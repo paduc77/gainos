@@ -8,9 +8,10 @@
  This version is just for oil25
 """
 import re, string, os
-from config.gainos_tk_cfg import gainos_tk_cfg
+
 from common.Common import *
 from config.gainos_tk_os_cfg import *
+
 #定义所有正则表达式
 # 1: for comment 
 re_comment_type1 = re.compile(r'/\*[^/]*\*/');
@@ -44,7 +45,8 @@ re_task_SCHEDULE = re.compile(r'SCHEDULE\s*=\s*(\w+)\s*;')
 re_task_PRIORITY = re.compile(r'PRIORITY\s*=\s*(\w+)\s*;')
 re_task_ACTIVATION = re.compile(r'ACTIVATION\s*=\s*(\w+)\s*;')
 re_task_AUTOSTART = re.compile(r'AUTOSTART\s*=\s*(\w+)\s*[;{]')
-re_task_StackSize = re.compile(r'StackSize\s*=\s*(\w+)\s*;')
+re_task_StackSize = re.compile(r'StackSize\s*=\s*(\w+)\s*;') #for MB Test
+re_task_STACK = re.compile(r'STACK\s*=\s*(\w+)\s*;') #for FreeOSEK
 re_task_appmode_list = re.compile(r'AUTOSTART\s*=\s*TRUE\s*{([^{}]*)}\s*;')
 re_task_APPMODE = re.compile(r'APPMODE\s*=\s*(\w+)')
 re_task_RESOURCE = re.compile(r'RESOURCE\s*=\s*(\w+)')
@@ -62,7 +64,7 @@ re_alarm_COUNTER = re.compile(r'COUNTER\s*=\s*(\w+)\s*;')
 re_alarm_ACTION = re.compile(r'ACTION\s*=\s*(ACTIVATETASK|SETEVENT|ALARMCALLBACK)\s*{([^{}]+)}\s*;')
 re_action_TASK = re.compile(r'TASK\s*=\s*(\w+)\s*;')
 re_action_EVENT = re.compile(r'EVENT\s*=\s*(\w+)\s*;')
-re_action_ALARMCALLBACKNAME = re.compile(r'ALARMCALLBACKNAME\s*=\s*(\w+)\s*;')
+re_action_ALARMCALLBACKNAME = re.compile(r'ALARMCALLBACKNAME\s*=\s*"(\w+)"\s*;')
 re_alarm_AUTOSTART = re.compile(r'AUTOSTART\s*=\s*(\w+)\s*[;{]')
 re_alarm_appmode_list = re.compile(r'AUTOSTART\s*=\s*TRUE\s*{([^{}]*)}\s*;')
 re_alarm_APPMODE = re.compile(r'APPMODE\s*=\s*(\w+)')
@@ -153,6 +155,8 @@ def oil_process_task(item, oscfg):
                             oscfg.cfg.appmodeList.append(AppMode(modename));
     if(re_task_StackSize.search(item)):
         tsk.stksz = int(re_task_StackSize.search(item).groups()[0]);
+    elif(re_task_STACK.search(item)):
+        tsk.stksz = int(re_task_STACK.search(item).groups()[0]);
     #for resource
     for subitem in item.split(';'): #maybe sereval resource
         if(re_task_RESOURCE.search(subitem)): 
@@ -213,6 +217,8 @@ def oil_process_alarm(item, oscfg):
                 alm.event = re_action_EVENT.search(action[1]).groups()[0]
         elif(action[0] == 'ALARMCALLBACK'):
             alm.type = 'callback';
+            if(re_action_ALARMCALLBACKNAME.search(action[1])):
+                alm.cbkname = re_action_ALARMCALLBACKNAME.search(action[1]).groups()[0]
     if(re_alarm_AUTOSTART.search(item)):
         alm.autostart = bool(re_alarm_AUTOSTART.search(item).groups()[0]);
         if(alm.autostart == True):
@@ -227,8 +233,12 @@ def oil_process_alarm(item, oscfg):
                             oscfg.cfg.appmodeList.append(AppMode(modename));
     if(re_alarm_ALARMTIME.search(item)):
         alm.alarmTime = int(re_alarm_ALARMTIME.search(item).groups()[0])
+        if(alm.alarmTime >= 10):
+            alm.alarmTime /= 10;  #just for test purpose, when test over, should remove it
     if(re_alarm_CYCLETIME.search(item)):
         alm.cycleTime = int(re_alarm_CYCLETIME.search(item).groups()[0])
+        if(alm.cycleTime >= 10):
+            alm.cycleTime /= 10;
 
 def oil_process_resource(item, oscfg):
     grp = re_oil_os_resource.search(item).groups();
@@ -303,6 +313,11 @@ def to_oscfg(oilfile, oscfg):
                     barcenum += el.count('{');
                 if(el.count('}') > 0):
                     barcenum -= el.count('}');
+                if((brace_flag == True) and (barcenum == 0)): #in one line
+                    #filter out the multi-line comment
+                    oneitem = filter_out_comment(oneitem)
+                    oil_process(oneitem, oscfg);
+                    process_one_item_start = False
             elif(re_include.search(el)): #include file
                 basep = os.path.dirname(oilfile)
                 file = re_include.search(el).groups()[0];
@@ -314,7 +329,8 @@ def to_oscfg(oilfile, oscfg):
             if(re_include.search(el)): #include file
                 basep = os.path.dirname(oilfile)
                 file = re_include.search(el).groups()[0];
-                file = basep+file;
+                file = basep+'/'+file;
+                to_oscfg(file, oscfg);
                 continue;
             if(el.count('{') > 0):  #so at comment should not include '{}'
                 brace_flag = True;
@@ -387,6 +403,16 @@ def post_process(oscfg):
             if(entp.mask == 'AUTO'):
                 ent.mask = oil_resolve_event_mask(tsk.eventList);
     oscfg.cfg.resolveOsCC();
+    oscfg.cfg.resolveOsMaxPriority();
+    # just add alarm for ConfTest purpose
+    if(gcfindObj(oscfg.cfg.alarmList,'AlarmError') == None):
+        alm = Alarm('AlarmError');
+        alm.type = 'task'
+        alm.task = 'TaskError'
+        alm.counter = 'SystemTimer'
+        oscfg.cfg.alarmList.append(alm);
+
+
         
     
     

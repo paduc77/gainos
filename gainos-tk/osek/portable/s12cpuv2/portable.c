@@ -62,6 +62,23 @@ EXPORT imask_t knl_getPRIMASK ( void )
     asm pula;
 }
 
+PRI knl_get_ipl(void)
+{
+    return (PRI)0;
+}
+
+void knl_set_ipl(PRI ipl)
+{
+    if(ipl < 0)
+    {
+        DISABLE_INTERRUPT;
+    }
+    else
+    {
+        ENABLE_INTERRUPT;
+    }
+}
+
 //mean start the SystemTick ISR timer.
 //here the test board I use has a 16 MHZ oscillator
 //modify it if you have a different board and want a different
@@ -79,6 +96,9 @@ EXPORT void knl_activate_r(void)
 {
     /* This is the most easiest Way to get Internal Resourse and
      * to make a task non-preemtable I think */
+    #if(cfgOS_PRE_TASK_HOOK == STD_ON)
+    PreTaskHook();
+    #endif
     knl_ctxtsk->priority = knl_ctxtsk->runpri;
     __asm CLI; // enable interrupt
     knl_ctxtsk->task();
@@ -92,6 +112,9 @@ EXPORT void knl_dispatch_r(void)
 	//asm   ldx  knl_ctxtsk;
 	asm   lds  SP_OFFSET,x;       /* Restore 'ssp' from TCB */
 	#endif
+    #if(cfgOS_PRE_TASK_HOOK == STD_ON)
+    PreTaskHook();
+    #endif
     asm   pula;
     asm   staa	tk_ppage;	      /* restore PPAGE */
     asm   puld;
@@ -176,6 +199,9 @@ void knl_force_dispatch(void)
 //and then do dispatch the high ready task <knl_schedtsk>
 interrupt 4 void knl_dispatch_entry(void)
 {
+    #if(cfgOS_POST_TASK_HOOK == STD_ON)
+    PostTaskHook();
+    #endif
     knl_dispatch_disabled=1;    /* Dispatch disable */ 
     asm   ldd   knl_taskmode  
     asm   pshd;                 /* save knl_taskmode */
@@ -198,9 +224,12 @@ interrupt 7 ISR(SystemTick)
 	//really, the extended feature for OSEK is not advised to be used.
 	knl_timer_handler();
     #endif
-    #if(cfgOSEK_COUNTER_NUM > 0)	
+    #if((cfgOSEK_COUNTER_NUM > 0) && (cfgOSEK_ALARM_NUM > 0))	
 	(void)IncrementCounter(0);
 	#endif
+    #if(cfgOSEK_COUNTER_NUM > 1)    
+    (void)IncrementCounter(1);
+    #endif
 	ExitISR();	
 }
 #pragma CODE_SEG DEFAULT

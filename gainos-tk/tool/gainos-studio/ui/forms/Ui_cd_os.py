@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'F:\parai@foxmail.com\github\gainos-tk\tool\gainos-studio\ui\forms\cd_os.ui'
 #
-# Created: Tue Jun 25 19:55:49 2013
+# Created: Fri Jun 28 23:08:58 2013
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -113,6 +113,8 @@ class Ui_cd_os(object):
         self.spbxMaxPrio = QtGui.QSpinBox(self.layoutWidget2)
         self.spbxMaxPrio.setMinimumSize(QtCore.QSize(91, 0))
         self.spbxMaxPrio.setToolTip(_fromUtf8(""))
+        self.spbxMaxPrio.setMinimum(1)
+        self.spbxMaxPrio.setMaximum(65535)
         self.spbxMaxPrio.setObjectName(_fromUtf8("spbxMaxPrio"))
         self.horizontalLayout_2.addWidget(self.spbxMaxPrio)
         self.horizontalLayout_4.addLayout(self.horizontalLayout_2)
@@ -472,7 +474,7 @@ class Ui_cd_os(object):
         self.label_21.setObjectName(_fromUtf8("label_21"))
         self.horizontalLayout_24.addWidget(self.label_21)
         self.leAlarmCbk = QtGui.QLineEdit(self.layoutWidget5)
-        self.leAlarmCbk.setEnabled(False)
+        self.leAlarmCbk.setEnabled(True)
         self.leAlarmCbk.setToolTip(_fromUtf8(""))
         self.leAlarmCbk.setText(_fromUtf8(""))
         self.leAlarmCbk.setObjectName(_fromUtf8("leAlarmCbk"))
@@ -614,7 +616,7 @@ class Ui_cd_os(object):
         self.verticalLayout.addWidget(self.btnDel)
 
         self.retranslateUi(cd_os)
-        self.tblGaInOsCfg.setCurrentIndex(0)
+        self.tblGaInOsCfg.setCurrentIndex(4)
         self.cmbxTskType.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(cd_os)
 

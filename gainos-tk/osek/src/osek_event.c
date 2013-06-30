@@ -72,6 +72,7 @@ StatusType SetEvent ( TaskType TaskID , EventMaskType Mask )
     if((flgcb->flgptn & flgcb->waipth) != NO_EVENT)
     {
         flgcb->waipth = NO_EVENT;
+        tcb->state = TS_READY;
         knl_make_runnable(tcb);
     }
     END_CRITICAL_SECTION;
@@ -84,7 +85,7 @@ StatusType SetEvent ( TaskType TaskID , EventMaskType Mask )
     	_errorhook_svcid = OSServiceId_SetEvent;
     	_errorhook_par1.tskid = TaskID;
     	_errorhook_par2.mask = Mask;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -132,7 +133,7 @@ StatusType ClearEvent ( EventMaskType Mask )
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_ClearEvent;
     	_errorhook_par1.mask = Mask;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -191,7 +192,7 @@ StatusType GetEvent ( TaskType TaskID , EventMaskRefType Event )
     	_errorhook_svcid = OSServiceId_GetEvent;
     	_errorhook_par1.tskid = TaskID;
     	_errorhook_par2.p_mask = Event;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -241,9 +242,13 @@ StatusType WaitEvent( EventMaskType Mask )
     {
         flgcb->waipth = Mask;
         knl_ctxtsk->state = TS_WAIT;
+        //release internal resource or for Non-Preemtable Task
+        knl_ctxtsk->priority = knl_ctxtsk->itskpri; 
         knl_search_schedtsk();
     }
     END_CRITICAL_SECTION;
+    //re-get internal resource or for Non-Preemtable task
+    knl_ctxtsk->priority = knl_ctxtsk->runpri;
        
   Error_Exit:
     #if(cfgOS_ERROR_HOOK == STD_ON)
@@ -252,7 +257,7 @@ StatusType WaitEvent( EventMaskType Mask )
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_WaitEvent;
     	_errorhook_par1.mask = Mask;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */

@@ -53,7 +53,7 @@ void StartOS ( AppModeType AppMode )
 {
     DISABLE_INTERRUPT;
     knl_app_mode =  AppMode;
-    #if(cfgOSEK_COUNTER_NUM > 0)
+    #if(cfgOSEK_ALARM_NUM > 0)
     knl_cntalm_init();
     #endif
     knl_resource_init();
@@ -102,7 +102,7 @@ void StartOS ( AppModeType AppMode )
 /* |                  | OSEKtime OS will be shut down after OSEK OS shutdown.            | */
 /* |------------------+------------------------------------------------------------------| */
 /* | Particularities: | After this service the operating system is shut down.            | */
-/* |                  | Allowed at task level, ISR level, in ErrorHook and StartupHook,  | */
+/* |                  | Allowed at task level, ISR level, in CallErrorHook and StartupHook,  | */
 /* |                  | and also called internally by the operating system.              | */
 /* |                  | If the operating system calls ShutdownOS it never uses E_OK      | */
 /* |                  | as the passed parameter value.                                   | */
@@ -111,6 +111,7 @@ void StartOS ( AppModeType AppMode )
 /* |------------------+------------------------------------------------------------------| */
 void ShutdownOS( StatusType Error )
 {
+    DISABLE_INTERRUPT;
 #if (cfgOS_SHUT_DOWN_HOOK == STD_ON)
 	ShutdownHook(Error);
 #endif
@@ -121,6 +122,12 @@ void ShutdownOS( StatusType Error )
         /* Dead lopp here */
     }
 
+}
+
+//get the os active application mode
+AppModeType GetActiveApplicationMode(void)
+{
+    return knl_app_mode;
 }
 
 #if defined(cfgOSEK_STD_ISR_PROCESS)
@@ -148,5 +155,18 @@ void ExitISR(void)
         }
     }
     ENABLE_INTERRUPT;
+}
+#endif
+
+#if(cfgOS_ERROR_HOOK == STD_ON)
+void CallErrorHook(StatusType ercd)
+{
+    static call_count = 0;
+    call_count++;
+    if(1 == call_count)
+    {
+        ErrorHook(ercd);
+    }
+    call_count--;    
 }
 #endif

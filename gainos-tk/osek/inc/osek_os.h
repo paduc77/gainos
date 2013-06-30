@@ -47,7 +47,6 @@
 #define TTW_MPF		    0x00002000UL             /* Fixed size memory pool wait */
 #define TTW_MPL		    0x00004000UL             /* Variable size memory pool wait */
 
-#define DeclareTask(TaskName)  TaskType TaskName
 #if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
 #define GenTaskStack(TaskName)  static uint32 TaskStack##TaskName[TaskName##StkSz/4]
 /* Task Generate information */
@@ -89,10 +88,10 @@
             /* runpri */ runpri                                         \
             }
 #endif  /* cfgOS_SHARE_SYSTEM_STACK */
-#define GenAlarmInfo(AlarmName,Owner)           \
+#define GenAlarmInfo(AlarmName,Owner,Almhdr)           \
     {                                           \
         /* owner */ Owner,                 \
-        /* almhdr */ AlarmMain##AlarmName,   \
+        /* almhdr */ AlarmMain##Almhdr,   \
         /* time */ AlarmName##_AutoStartTime,   \
         /* cycle */ AlarmName##_AutoCycleTime,   \
         /* mode */ AlarmName##Mode   \
@@ -177,6 +176,7 @@ typedef struct task_control_block{
     #endif
     ATR 	    tskatr;		/* Task attribute */
     PRI         runpri;     /* Task priority When it Start To Running */
+    PRI         itskpri;    /* Priority at task startup */
     //}}
     UINT        actcnt;     /* Task Activate Count */
 	PRI	        priority;	/* Current priority */
@@ -226,6 +226,7 @@ typedef	struct ready_queue {
 	TCB	*   null;			/* When the ready queue is empty, */
     #else
     FIFOQUE tskque[NUM_PRI];    /* Task queue per priority */
+    FIFOQUE null;
     #endif /* cfgOSEK_FIFO_QUEUE_PER_PRIORITY */
 	UINT	bitmap[NUM_BITMAP];	/* Bitmap area per priority */
 //	TCB	*klocktsk;	/* READY task with kernel lock */
@@ -272,5 +273,7 @@ typedef struct event_control_block {
 	EventMaskType	            flgptn;		    /* Event flag current pattern */
     EventMaskType               waipth;         /* Event flag wait pattern */
 } FLGCB;
+
+void CallErrorHook(StatusType xError);
 #endif /* _OSEK_OS_H_ */
 

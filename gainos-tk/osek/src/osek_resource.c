@@ -97,7 +97,7 @@ StatusType GetResource (ResourceType ResID)
         BEGIN_DISABLE_INTERRUPT;
         if(newpri < 0)
         {
-            //TODO: share resourse with OSR
+            //TODO: share resourse with ISR
             /* Task share resource with ISR */
             /* should change IPL */
             /* not supported */
@@ -106,7 +106,7 @@ StatusType GetResource (ResourceType ResID)
         {
             knl_ctxtsk->priority = newpri; 
             rescb->tskpri = oldpri;
-            QueInsert(&knl_ctxtsk->resque,&rescb->resque);  
+            QueInsert(&rescb->resque,&knl_ctxtsk->resque);  
         }
         END_DISABLE_INTERRUPT;	
     }
@@ -117,7 +117,7 @@ Error_Exit:
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_GetResource;
     	_errorhook_par1.resid = ResID;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -165,7 +165,7 @@ StatusType ReleaseResource ( ResourceType ResID )
     }
     else
     {
-        OS_CHECK_EXT((knl_ctxtsk->resque.next == &rescb->resque),E_OS_NOFUNC);
+        OS_CHECK_EXT((knl_ctxtsk->resque.prev == &rescb->resque),E_OS_NOFUNC);
         oldpri = knl_gres_table[ResID];
         newpri = rescb->tskpri;
          
@@ -197,10 +197,11 @@ Error_Exit:
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_ReleaseResource;
     	_errorhook_par1.resid = ResID;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
 	return ercd;
 }
 #endif /* (cfgOSEK_RESOURCE_NUM > 0) */
+

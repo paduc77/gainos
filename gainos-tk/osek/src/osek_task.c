@@ -87,7 +87,7 @@ StatusType ActivateTask ( TaskType TaskID )
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_ActivateTask;
     	_errorhook_par1.tskid = TaskID;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
 	}
 	#endif /* cfgOS_ERROR_HOOK */
@@ -136,6 +136,9 @@ StatusType TerminateTask ( void )
 	OS_CHECK_EXT(isQueEmpty(&knl_ctxtsk->resque),E_OS_RESOURCE);
 	DISABLE_INTERRUPT;
 
+	#if(cfgOS_POST_TASK_HOOK == STD_ON)
+    PostTaskHook();
+    #endif
 	knl_ctxtsk->state = TS_DORMANT;
 	knl_search_schedtsk();
 	#if((cfgOS_CONFORMANCE_CLASS == ECC2) || (cfgOS_CONFORMANCE_CLASS == BCC2))
@@ -158,7 +161,7 @@ StatusType TerminateTask ( void )
 	{
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_TerminateTask;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -250,6 +253,10 @@ StatusType ChainTask ( TaskType TaskID )
     		}
     	}
     	
+    	#if(cfgOS_POST_TASK_HOOK == STD_ON)
+	    PostTaskHook();
+	    #endif
+
     	knl_ctxtsk->state = TS_DORMANT;
     	knl_search_schedtsk();
     	#if((cfgOS_CONFORMANCE_CLASS == ECC2) || (cfgOS_CONFORMANCE_CLASS == BCC2))
@@ -271,16 +278,17 @@ StatusType ChainTask ( TaskType TaskID )
 
 	/* No return */
 	Error_Exit:
+	ENABLE_INTERRUPT;
 	#if(cfgOS_ERROR_HOOK == STD_ON)
 	if(E_OK != ercd)
 	{
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_ChainTask;
     	_errorhook_par1.tskid = TaskID;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
-	#endif /* cfgOS_ERROR_HOOK */
+	#endif /* cfgOS_ERROR_HOOK */	
     return ercd;
 }
 
@@ -318,28 +326,28 @@ StatusType ChainTask ( TaskType TaskID )
 StatusType Schedule ( void )
 {
     StatusType ercd = E_OK;
-    PRI itskpri;
 	OS_CHECK_EXT(!in_indp(),E_OS_CALLEVEL);
 	OS_CHECK_EXT(isQueEmpty(&knl_ctxtsk->resque),E_OS_RESOURCE);
 
 	BEGIN_CRITICAL_SECTION;
-	itskpri = knl_gtsk_table[knl_ctxtsk->tskid].itskpri;
-	//if task has internal resource and premtable
-	if(((knl_ctxtsk->tskatr&NON_PREEMTABLE) == 0)    //task preemtable
-    	&&(knl_ready_queue.top_priority <= itskpri))
-	{  //this only happends when a preemtable task has an internal resource
-    	knl_ctxtsk->priority = itskpri;   //reset it to initial priority
+	//if task has internal resource or task is non-premtable
+	if(knl_ready_queue.top_priority <= knl_ctxtsk->itskpri)
+	{	//release internal resource or for Non-Preemtable Task
+    	knl_ctxtsk->priority = knl_ctxtsk->itskpri;  
         knl_reschedule();
     }
 	END_CRITICAL_SECTION;
-	knl_ctxtsk->priority = knl_ctxtsk->runpri; //so get the internal resource again
+
+	//re-get internal resource or for Non-Preemtable task
+	knl_ctxtsk->priority = knl_ctxtsk->runpri;
+
 	Error_Exit:
 	#if(cfgOS_ERROR_HOOK == STD_ON)
 	if(E_OK != ercd)
 	{
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_Schedule;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
 	}
 	#endif /* cfgOS_ERROR_HOOK */
@@ -441,7 +449,7 @@ Error_Exit:
     	_errorhook_svcid = OSServiceId_GetTaskState;
     	_errorhook_par1.tskid = TaskID;
     	_errorhook_par2.p_state = State;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
 	}
 	#endif /* cfgOS_ERROR_HOOK */

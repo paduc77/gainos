@@ -18,10 +18,10 @@ class General():
         self.sched_policy = 'MIXED_PREEMPTIVE_SCHEDULE';
         self.tk_extend = False;
         self.os_startup_hook = True;
-        self.os_shutdown_hook = False;
-        self.os_pretask_hook = False;
-        self.os_post_task_hook = False;
-        self.os_error_hook = False;
+        self.os_shutdown_hook = True;
+        self.os_pretask_hook = True;
+        self.os_post_task_hook = True;
+        self.os_error_hook = True;
         self.os_stack_overflow_check = False;
         self.system_stack_size = 512;
         self.share_system_stack = False;
@@ -161,8 +161,8 @@ class Task():
 class Counter():
     def __init__(self, name):
         self.name=name;
-        self.max = 30000;
-        self.min = 10;
+        self.max = 32767;
+        self.min = 1;
         self.tpb = 1; #ticks per base
 
     def save(self, root):
@@ -185,6 +185,7 @@ class Alarm():
         self.counter = ''
         #callback,task,event
         self.type='callback'; 
+        self.cbkname='DUMMY_CALLBACK'; 
         self.task='';
         self.event=''; 
         self.autostart = False
@@ -196,6 +197,7 @@ class Alarm():
         nd.attrib['name'] = str(self.name);
         nd.attrib['counter'] = str(self.counter);
         nd.attrib['type'] = str(self.type);
+        nd.attrib['cbkname'] = str(self.cbkname);
         nd.attrib['task'] = str(self.task);
         nd.attrib['event'] = str(self.event);
         nd.attrib['autostart'] = str(self.autostart);
@@ -210,6 +212,7 @@ class Alarm():
         self.name = nd.attrib['name'];
         self.counter = nd.attrib['counter'];
         self.type = nd.attrib['type'];
+        self.cbkname = nd.attrib['cbkname'];
         self.task = nd.attrib['task'];
         self.event = nd.attrib['event'];
         self.autostart = bool(nd.attrib['autostart']);      
@@ -226,6 +229,7 @@ class AppMode():
         root.append(nd); 
     def parse(self, nd):
         self.name = nd.attrib['name'];
+        
 class gainos_tk_os_obj():
     def __init__(self, chip):
         self.general = General(chip);
@@ -257,6 +261,7 @@ class gainos_tk_os_obj():
                         self.general.os_class = self.general.os_class[:3]+'2'
                         return
         self.general.os_class = self.general.os_class[:3]+'1'
+
     def isFifoQueue(self):
         for tsk in self.taskList:
             for tsk2 in self.taskList:
@@ -265,6 +270,7 @@ class gainos_tk_os_obj():
                         if(tsk.maxactcnt > 1 or tsk2.maxactcnt > 1):
                             return True
         return False
+
     def resolveFifoQueLength(self, priority):
         length = 0;
         for tsk in self.taskList:
@@ -274,7 +280,13 @@ class gainos_tk_os_obj():
             return 0;
         else:
             return length+1
-                
+
+    def resolveOsMaxPriority(self):
+        self.general.max_pri = 0;
+        for tsk in self.taskList:
+            if(tsk.prio > self.general.max_pri):
+                self.general.max_pri = tsk.prio
+        self.general.max_pri += 3;
 
 class gainos_tk_os_cfg():
     def __init__(self, chip):
@@ -465,7 +477,10 @@ class gainos_tk_os_cfg():
             fp.write('#define %sMode (%s)\n'%(obj.name,str));    
         fp.write('#if !defined(MACROS_ONLY)\n')
         for obj in self.cfg.alarmList:
-            fp.write('IMPORT ALARM(%s);\n'%(obj.name));
+            if(obj.type == 'callback'):
+                fp.write('IMPORT ALARMCALLBACK(%s);\n'%(obj.cbkname));
+            else:
+                fp.write('IMPORT ALARM(%s);\n'%(obj.name));
         fp.write('#endif')
         #=============================== RESOURCE ======================
         fp.write('\n/*  ====================  RESOURCE ======================= */\n');
@@ -545,7 +560,10 @@ class gainos_tk_os_cfg():
         if(len(self.cfg.alarmList) >0):
             str = 'EXPORT const T_GALM knl_galm_table[cfgOSEK_ALARM_NUM]=\n{\n';
             for obj in self.cfg.alarmList:
-                str += '\tGenAlarmInfo(%s,%s),\n'%(obj.name, obj.counter);
+                if(obj.type == 'callback'):
+                    str += '\tGenAlarmInfo(%s,%s,%s),\n'%(obj.name, obj.counter, obj.cbkname);
+                else:
+                    str += '\tGenAlarmInfo(%s,%s,%s),\n'%(obj.name, obj.counter, obj.name);
             str+='};\n\n'
             fp.write(str);
         #======================= RESOURCE ==============
@@ -574,6 +592,22 @@ class gainos_tk_os_cfg():
             str += '\t},\n'
             str +='};\n\n'
             fp.write(str);
+        #===============
+        for obj in self.cfg.alarmList:
+            if(obj.type == 'task'):
+                fp.write("""
+ALARM(%s)
+{
+    /* Alarm Type: Task, you still can add your special code here.*/
+    (void)ActivateTask(%s);
+}"""%(obj.name, obj.task));
+            elif(obj.type == 'event'):
+                fp.write("""
+ALARM(%s)
+{
+    /* Alarm Type: Event, you still can add your special code here.*/
+    (void)SetEvent(%s,%s);
+}"""%(obj.name, obj.task, obj.event));
         #================================= end ===============
         fp.close();
     

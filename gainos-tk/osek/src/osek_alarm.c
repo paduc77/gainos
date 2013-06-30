@@ -22,7 +22,7 @@
 #include "knl_alarm.h"
 #include "knl_queue.h"
 #include "portable.h"
-#if(cfgOSEK_ALARM_NUM >0)
+#if(cfgOSEK_COUNTER_NUM >0)
 /* |------------------+------------------------------------------------------------------| */
 /* | Syntax:          | StatusType GetAlarmBase (AlarmType <AlarmID>,                    | */
 /* |                  | AlarmBaseRefType <Info> )                                        | */
@@ -49,9 +49,9 @@ StatusType GetAlarmBase ( AlarmType AlarmID, AlarmBaseRefType Info )
     CounterType cntid;
     OS_CHECK_EXT((AlarmID < cfgOSEK_ALARM_NUM),E_OS_ID);
     cntid = knl_galm_table[AlarmID].owner;
-    Info->MaxAllowedValue = knl_almbase_table[cntid].MaxAllowedValue;
-    Info->MinCycle = knl_almbase_table[cntid].MinCycle;
-    Info->TicksPerBase = knl_almbase_table[cntid].TicksPerBase;
+    Info->maxallowedvalue = knl_almbase_table[cntid].maxallowedvalue;
+    Info->mincycle = knl_almbase_table[cntid].mincycle;
+    Info->ticksperbase = knl_almbase_table[cntid].ticksperbase;
     
 Error_Exit:
     #if(cfgOS_ERROR_HOOK == STD_ON)
@@ -61,7 +61,7 @@ Error_Exit:
     	_errorhook_svcid = OSServiceId_GetAlarmBase;
     	_errorhook_par1.almid = AlarmID;
     	_errorhook_par2.p_info = Info;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -102,10 +102,17 @@ StatusType GetAlarm ( AlarmType AlarmID ,TickRefType Tick )
     OS_CHECK((!isQueEmpty(&almcb->almque)),E_OS_NOFUNC);
     cntid = knl_galm_table[AlarmID].owner;
     ccb = &knl_ccb_table[cntid];
-    max = knl_almbase_table[cntid].MaxAllowedValue;
+    max = knl_almbase_table[cntid].maxallowedvalue;
     
     BEGIN_DISABLE_INTERRUPT;
-    *Tick = knl_diff_tick(ccb->curvalue,almcb->time,max*2);
+    if(ccb->curvalue <  almcb->time)
+    {
+        *Tick = almcb->time - ccb->curvalue;
+    }
+    else
+    {
+        *Tick = max*2 + 1- ccb->curvalue + almcb->time;
+    }
     END_DISABLE_INTERRUPT;
     
     Error_Exit:
@@ -116,7 +123,7 @@ StatusType GetAlarm ( AlarmType AlarmID ,TickRefType Tick )
     	_errorhook_svcid = OSServiceId_GetAlarm;
     	_errorhook_par1.almid = AlarmID;
     	_errorhook_par2.p_tick = Tick;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -180,10 +187,10 @@ StatusType SetRelAlarm ( AlarmType AlarmID , TickType Increment ,TickType Cycle 
     almcb = &knl_almcb_table[AlarmID];
     OS_CHECK((isQueEmpty(&almcb->almque)),E_OS_STATE);
     cntid = knl_galm_table[AlarmID].owner;
-    max = knl_almbase_table[cntid].MaxAllowedValue;
-    OS_CHECK_EXT((max > Increment),E_OS_VALUE);
-    OS_CHECK_EXT((max > Cycle),E_OS_VALUE);
-    OS_CHECK_EXT(((knl_almbase_table[cntid].MinCycle <= Cycle) || (0 == Cycle)),E_OS_VALUE);
+    max = knl_almbase_table[cntid].maxallowedvalue;
+    OS_CHECK_EXT((max >= Increment),E_OS_VALUE);
+    OS_CHECK_EXT((max >= Cycle),E_OS_VALUE);
+    OS_CHECK_EXT(((knl_almbase_table[cntid].mincycle <= Cycle) || (0 == Cycle)),E_OS_VALUE);
     ccb = &knl_ccb_table[cntid];
     
     BEGIN_DISABLE_INTERRUPT;
@@ -201,7 +208,7 @@ Error_Exit:
     	_errorhook_par1.almid = AlarmID;
     	_errorhook_par2.incr = Increment;
     	_errorhook_par3.cycle = Cycle;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -266,10 +273,10 @@ StatusType SetAbsAlarm ( AlarmType AlarmID , TickType Start ,TickType Cycle )
     almcb = &knl_almcb_table[AlarmID];
     OS_CHECK((isQueEmpty(&almcb->almque)),E_OS_STATE);
     cntid = knl_galm_table[AlarmID].owner;
-    max = knl_almbase_table[cntid].MaxAllowedValue;
-    OS_CHECK_EXT((max > Start),E_OS_VALUE);
-    OS_CHECK_EXT((max > Cycle),E_OS_VALUE);
-    OS_CHECK_EXT(((knl_almbase_table[cntid].MinCycle < Cycle) || (0 == Cycle)),E_OS_VALUE);
+    max = knl_almbase_table[cntid].maxallowedvalue;
+    OS_CHECK_EXT((max >= Start),E_OS_VALUE);
+    OS_CHECK_EXT((max >= Cycle),E_OS_VALUE);
+    OS_CHECK_EXT(((knl_almbase_table[cntid].mincycle <= Cycle) || (0 == Cycle)),E_OS_VALUE);
     ccb = &knl_ccb_table[cntid];
     
     BEGIN_DISABLE_INTERRUPT;
@@ -286,7 +293,7 @@ Error_Exit:
     	_errorhook_par1.almid = AlarmID;
     	_errorhook_par2.start = Start;
     	_errorhook_par3.cycle = Cycle;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
@@ -330,7 +337,7 @@ StatusType CancelAlarm ( AlarmType AlarmID )
     	BEGIN_CRITICAL_SECTION;
     	_errorhook_svcid = OSServiceId_CancelAlarm;
     	_errorhook_par1.almid = AlarmID;
-    	ErrorHook(ercd);
+    	CallErrorHook(ercd);
     	END_CRITICAL_SECTION;
     }
 	#endif /* cfgOS_ERROR_HOOK */
