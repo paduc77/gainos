@@ -146,8 +146,7 @@ void ExitISR(void)
     {
         knl_taskindp--;
     }
-    if((0 == knl_taskindp)&&
-       (!knl_dispatch_disabled))
+    if((!in_indp()) && (!knl_dispatch_disabled))
     {
         if(knl_ctxtsk != knl_schedtsk)
         {

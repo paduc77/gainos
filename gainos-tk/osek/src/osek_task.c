@@ -140,6 +140,8 @@ StatusType TerminateTask ( void )
     PostTaskHook();
     #endif
 	knl_ctxtsk->state = TS_DORMANT;
+	//release internal resource or for non-preemtable task
+	knl_ctxtsk->priority = knl_ctxtsk->itskpri;
 	knl_search_schedtsk();
 	#if((cfgOS_CONFORMANCE_CLASS == ECC2) || (cfgOS_CONFORMANCE_CLASS == BCC2))
 	if(knl_ctxtsk->actcnt > 0)
@@ -228,6 +230,8 @@ StatusType ChainTask ( TaskType TaskID )
 	DISABLE_INTERRUPT;
     if(TaskID == knl_ctxtsk->tskid){
         /* chain to itself */
+        //release internal resource or for non-preemtable task
+        knl_ctxtsk->priority = knl_ctxtsk->itskpri;  
         knl_search_schedtsk();
         knl_make_active(knl_ctxtsk);
     }
@@ -258,6 +262,8 @@ StatusType ChainTask ( TaskType TaskID )
 	    #endif
 
     	knl_ctxtsk->state = TS_DORMANT;
+    	//release internal resource or for non-preemtable task
+    	knl_ctxtsk->priority = knl_ctxtsk->itskpri;
     	knl_search_schedtsk();
     	#if((cfgOS_CONFORMANCE_CLASS == ECC2) || (cfgOS_CONFORMANCE_CLASS == BCC2))
     	if(knl_ctxtsk->actcnt > 0)
@@ -331,7 +337,7 @@ StatusType Schedule ( void )
 
 	BEGIN_CRITICAL_SECTION;
 	//if task has internal resource or task is non-premtable
-	if(knl_ready_queue.top_priority <= knl_ctxtsk->itskpri)
+	if(knl_ready_queue.top_priority < knl_ctxtsk->itskpri)
 	{	//release internal resource or for Non-Preemtable Task
     	knl_ctxtsk->priority = knl_ctxtsk->itskpri;  
         knl_reschedule();

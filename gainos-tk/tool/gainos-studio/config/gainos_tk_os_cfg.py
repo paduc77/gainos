@@ -244,6 +244,14 @@ class gainos_tk_os_obj():
         ### for oil usage
         self.eventList=[];
 
+    def resolveResPrio(self,res):
+        res.ceilprio = 0;
+        for taskname in res.taskList:
+            tsk = gcfindObj(self.taskList,taskname);
+            if(tsk != None):
+                if(tsk.prio > res.ceilprio):
+                    res.ceilprio = tsk.prio;
+
     def resolveOsCC(self):
         self.general.os_class = 'BCC'; #start
         for tsk in self.taskList:
@@ -276,10 +284,13 @@ class gainos_tk_os_obj():
         for tsk in self.taskList:
             if(tsk.prio == priority):
                 length += tsk.maxactcnt;
+        for res in self.resourceList+self.internalResourceList:
+            if(res.ceilprio == priority):
+                length += 1; # for a task with this resource
         if(length == 0):
             return 0;
         else:
-            return length+1
+            return length+2
 
     def resolveOsMaxPriority(self):
         self.general.max_pri = 0;

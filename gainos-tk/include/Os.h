@@ -78,7 +78,14 @@
 
 #define TASK(TaskName) void TaskMain##TaskName(void)
 #define ALARM(AlarmName)     \
-    void AlarmMain##AlarmName(void)  
+    void AlarmMain##AlarmName(void) 
+#define ALARMCALLBACK(cbk)  \
+    void AlarmMain##cbk(void)    
+
+#define DeclareTask(TaskName)
+#define DeclareAlarm(AlarmName)
+#define DeclareResource(ResourceName)
+#define DeclareEvent(EventName)    
 
 //----------------------- OS Error Process -----------
 /*
@@ -149,12 +156,12 @@ typedef TickType* TickRefType;
 typedef struct
 {
     /* Maximum possible allowed count value in ticks */
-    TickType MaxAllowedValue;
+    TickType maxallowedvalue;
     /*  Number of ticks required to reach a counter-specific (significant) unit. */
-    TickType TicksPerBase;
+    TickType ticksperbase;
     /* Smallest allowed value for the cycle-parameter of */
     /* SetRelAlarm/SetAbsAlarm) (only for systems with extended status). */
-    TickType MinCycle;
+    TickType mincycle;
 }AlarmBaseType;
 /* This data type points to the data type AlarmBaseType. */
 typedef AlarmBaseType * AlarmBaseRefType;
@@ -223,8 +230,11 @@ StatusType ClearEvent( EventMaskType Mask );
 StatusType GetEvent  ( TaskType TaskID , EventMaskRefType Event );
 StatusType WaitEvent ( EventMaskType Mask );
 
+AppModeType GetActiveApplicationMode(void);
+
 void EnterISR(void);
 void ExitISR(void);
+#define LeaveISR() ExitISR()
 void DisableAllInterrupts( void );
 void EnableAllInterrupts ( void );
 void SuspendAllInterrupts( void );
