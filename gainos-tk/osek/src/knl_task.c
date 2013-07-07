@@ -31,7 +31,7 @@ EXPORT TCB	*knl_schedtsk;
 EXPORT RDYQUE	knl_ready_queue;
 #endif
 EXPORT	INT	    knl_taskindp = 0;
-EXPORT	UINT	knl_taskmode;
+EXPORT	UINT	knl_taskmode;    //TODO remove it for all compilers
 EXPORT TCB	    knl_tcb_table[cfgOSEK_TASK_NUM];
 EXPORT AppModeType knl_app_mode;
 
@@ -143,7 +143,6 @@ EXPORT void knl_task_init(void)
     for(i=0,tcb=knl_tcb_table; i < cfgOSEK_TASK_NUM; i++,tcb++)
     {
         tcb->tskid = i;
-        tcb->tskatr = knl_gtsk_table[i].tskatr;
         QueInit(&tcb->tskque);
         tcb->task = knl_gtsk_table[i].task; /* save task entry */
         #if(cfgOS_SHARE_SYSTEM_STACK == STD_OFF)
@@ -153,7 +152,7 @@ EXPORT void knl_task_init(void)
         tcb->runpri = knl_gtsk_table[i].runpri;
         tcb->itskpri= knl_gtsk_table[i].itskpri;
         tcb->actcnt = 0;
-        if(((tcb->tskatr&APPMODEMASK)&knl_app_mode) != 0 )
+        if((TASK_MODE(i)&knl_app_mode) != 0 )
         {
         	knl_make_active(tcb);
         }
