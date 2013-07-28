@@ -24,6 +24,10 @@
 #include "knl_alarm.h"
 #include "portable.h"
 
+#if(cfgAR_SCHEDTBL_NUM > 0)
+#include "schedule_table.h"
+#endif
+
 #if(cfgOSEK_COUNTER_NUM > 0)
 EXPORT CCB knl_ccb_table[cfgOSEK_COUNTER_NUM];
 /* |-------------------+-----------------------------------------------------------------| */
@@ -147,6 +151,7 @@ StatusType IncrementCounter(CounterType CounterID)
        as it has implemented the TicksPerBase. So the method used by nxtOSEK is prefered.
     */
     ccb->curvalue = knl_add_ticks(ccb->curvalue,knl_almbase_table[CounterID].ticksperbase,max*2);
+#if(cfgOSEK_ALARM_NUM > 0)
     /* Execute alarm that passed occurring time. */
 	while ( !isQueEmpty(&ccb->almque) ) {
 	    ALMCB *almcb =  (ALMCB *)ccb->almque.next;
@@ -170,6 +175,32 @@ StatusType IncrementCounter(CounterType CounterID)
 	        QueInit(&almcb->almque);
 	    }
 	}
+#endif
+#if(cfgAR_SCHEDTBL_NUM > 0)
+    /* Execute schedule table that passed occurring time. */
+    #if(cfgAR_SCHEDTBL_QUEUE_METHOD == SCHEDTBL_IN_ORDER)
+	while ( !isQueEmpty(&ccb->tblque) ) {
+	    SCHEDTBLCB *schedtblcb =  (SCHEDTBLCB *)ccb->tblque.next;
+	    if(knl_diff_tick(ccb->curvalue,schedtblcb->time,max*2) > max)
+	    {  
+	        break;
+	    }  
+        QueRemove(&schedtblcb->tblque);
+	    knl_signal_schedule_table(schedtblcb,ccb);
+	}
+	#else
+	{
+    	QUEUE* q;
+        for ( q = ccb->tblque.next; q != &ccb->tblque; q = q->next ) {
+            if(knl_diff_tick(ccb->curvalue,((SCHEDTBLCB *)q)->time,max*2) > max)
+    	    {  
+    	        continue;
+    	    }  
+    	    knl_signal_schedule_table((SCHEDTBLCB *)q,ccb);
+    	}
+	}
+	#endif
+#endif
 	END_DISABLE_INTERRUPT;
     Error_Exit:
     return ercd;

@@ -229,7 +229,78 @@ class AppMode():
         root.append(nd); 
     def parse(self, nd):
         self.name = nd.attrib['name'];
-        
+class ExpiryPoint():
+    def __init__(self):
+        self.offset = -1;
+        self.actionList = []; #example: ActivateTask(Task1); SetEvent(Task1,Event1);
+    def save(self, root):
+        nd = ET.Element('ExpiryPoint')
+        nd.attrib['offset'] = str(self.offset)
+        nd2 = ET.Element('actionList')
+        for action in self.actionList:
+            nd3 = ET.Element('action')
+            nd3.attrib['value'] = str(action)
+            nd2.append(nd3);
+        nd.append(nd2)
+        root.append(nd)
+    def parse(self, nd):
+        self.offset = int(nd.attrib['offset'])
+        for nd2 in nd.find('actionList'):
+            self.actionList.append(nd2.attrib['value']);
+
+class ScheduleTable():
+    def __init__(self, name):
+        self.name = name;
+        self.owner = ''; #driving counter
+        self.strategy = 'NONE'; #sync strategy
+        self.repeatable = True; 
+        self.finaldelay = 10;
+        self.table = []; #should be in the order by offset from small to large
+        self.maxadvance = 2;
+        self.maxretard = 2;
+        self.precision = 0;
+    def save(self, root):
+        nd = ET.Element('ScheduleTable')
+        nd.attrib['name'] = str(self.name)
+        nd.attrib['owner'] = str(self.owner)
+        nd.attrib['strategy'] = str(self.strategy)
+        nd.attrib['repeatable'] = str(self.repeatable)
+        nd.attrib['finaldelay'] = str(self.finaldelay)
+        nd2 = ET.Element('ExpiryPointList')
+        for tbl in self.table:
+            tbl.save(nd2);
+        nd.append(nd2)
+        nd.attrib['maxadvance'] = str(self.maxadvance)
+        nd.attrib['maxretard'] = str(self.maxretard)
+        nd.attrib['precision'] = str(self.precision)
+        root.append(nd)
+    def parse(self, nd):
+        self.name = nd.attrib['name']
+        self.owner = nd.attrib['owner']
+        self.strategy = nd.attrib['strategy']
+        self.repeatable = bool(nd.attrib['repeatable'])
+        self.finaldelay = int(nd.attrib['finaldelay'])
+        for nd2 in nd.find('ExpiryPointList'):
+            tbl = ExpiryPoint()
+            tbl.parse(nd2)
+            self.table.append(tbl)
+        self.maxadvance = int(nd.attrib['maxadvance'])
+        self.maxretard = int(nd.attrib['maxretard'])
+        self.precision = int(nd.attrib['precision'])
+    def toString(self):
+        str = 'Repeatable: <%s>\n'%(self.repeatable)
+        str += 'Driving counter: <%s>\n'%(self.owner)
+        str += 'Sync strategy: <%s>\n'%(self.strategy)
+        str += 'Final delay: <%s>\n'%(self.finaldelay)
+        str += 'Max advance: <%s>\n'%(self.maxadvance)
+        str += 'Max retard: <%s>\n'%(self.maxretard)
+        str += 'Precision: <%s>\n'%(self.precision)
+        for tbl in self.table:
+            str += '< offset = %s:\n'%(tbl.offset)
+            for action in tbl.actionList:
+                str += '    %s;\n'%(action)
+            str += '/>\n'
+        return str;
 class gainos_tk_os_obj():
     def __init__(self, chip):
         self.general = General(chip);
@@ -241,6 +312,7 @@ class gainos_tk_os_obj():
         self.appmodeList = [];
         self.appmodeList.append(AppMode('OSDEFAULTAPPMODE'));
         self.internalResourceList = [];
+        self.schedTblList = [];
         ### for oil usage
         self.eventList=[];
 
@@ -346,6 +418,11 @@ class gainos_tk_os_cfg():
             if(mode.name != 'OSDEFAULTAPPMODE'):
                 mode.save(nd);
         root.append(nd);
+        
+        nd = ET.Element('schedTblList');
+        for sched in self.cfg.schedTblList:
+            sched.save(nd)
+        root.append(nd);
     
     def parse(self, root):
         self.cfg.general.parse(root.find('General'));
@@ -385,11 +462,19 @@ class gainos_tk_os_cfg():
             obj = AppMode('unname');
             obj.parse(nd);
             self.cfg.appmodeList.append(obj);
+        
+        list = root.find('schedTblList');
+        for nd in list:
+            obj = ScheduleTable('unname');
+            obj.parse(nd);
+            self.cfg.schedTblList.append(obj);
 
     def gen(self, path):
         self.genC(path);
         self.genH(path);
         self.genApp(path);
+        self.genAutosarH(path)
+        self.genAutosarC(path)
     
     def toString(self):
         return 'OSEK OS Supported!'
@@ -509,6 +594,7 @@ class gainos_tk_os_cfg():
                 fp.write(tsk+', ')
             fp.write(']\n');
         fp.write('\n/*  ================   INTERNAL RESOURCE ================= */\n');
+        fp.write('#define cfgOSEK_INTERNAL_RESOURCE_NUM %s\n'%(len(self.cfg.internalResourceList)));
         for inres in self.cfg.internalResourceList:
             fp.write('#define %sPri PRIORITY(%s)\n'%(inres.name,inres.ceilprio))
             fp.write('\t//it had been assigned to [ ')
@@ -531,9 +617,6 @@ class gainos_tk_os_cfg():
         fp.write(gcGainOS_TkHead());
         fp.write("""
 #include "osek_os.h"
-#include "osek_cfg.h"
-#include "knl_task.h"
-#include "knl_alarm.h"
 #include "knl_event.h"
 #include <stdio.h>\n""");
         stack = '';
@@ -699,4 +782,64 @@ void ErrorHook(StatusType Error)
                 if(tskname == tsk.name):
                     return '%sPri'%(inres.name);
         return '%sPri'%(tsk.name)
-            
+    
+    def genAutosarH(self, path):
+        fp = open('%s/autosar_cfg.h'%(path), 'w');
+        fp.write(gcGainOS_TkHead());
+        fp.write('#ifndef _AUTOSAR_CFG_H_\n#define _AUTOSAR_CFG_H_\n\n')
+        fp.write('#define cfgAR_SCHEDTBL_QUEUE_METHOD SCHEDTBL_IN_LOOP\n')
+        fp.write('//#define cfgAR_SCHEDTBL_QUEUE_METHOD SCHEDTBL_IN_ORDER\n\n')
+        fp.write('#define cfgAR_SCHEDTBL_NUM %s\n\n'%(len(self.cfg.schedTblList)))
+        id = 0
+        for sched in self.cfg.schedTblList:
+            fp.write('#define %s %s\n'%(sched.name,id))
+            id += 1
+        fp.write('\n#endif /* _AUTOSAR_CFG_H_ */\n\n')
+        fp.close()
+        
+    def genAutosarC(self, path):
+        if(len(self.cfg.schedTblList) < 0):
+            return # AUTOSAR features not on
+        fp = open('%s/autosar_cfg.c'%(path), 'w');
+        fp.write(gcGainOS_TkHead());
+        fp.write('#include "autosar_os.h"\n\n')
+        fp.write('LOCAL void knl_schedule_table_dummy_action(void){ /* for final delay only */ }\n\n')
+        for sched in self.cfg.schedTblList:
+            id = 0
+            for tbl in sched.table:
+                str = 'LOCAL void %s_ExpiryPoint%s_Action(void)\n{\n'%(sched.name, id)
+                for action in tbl.actionList:
+                    str += '\t(void)%s;\n'%(action)
+                str += '}\n'
+                fp.write(str);
+                id += 1
+            str = 'LOCAL const ScheduleTableExpiryPointType %s_ExpiryPointList[] = \n{\n'%(sched.name)
+            id = 0
+            for tbl in sched.table:
+                if(id == 0):
+                    offset = tbl.offset;
+                else:
+                    offset = tbl.offset - sched.table[id-1].offset
+                str += '\t{ %s , %s_ExpiryPoint%s_Action },\n'%(offset, sched.name, id)
+                id += 1
+            if(sched.finaldelay > 0): #only for final delay
+                str += '\t{ %s , knl_schedule_table_dummy_action }\n'%(sched.finaldelay)
+            str +='};\n'
+            fp.write(str)
+        str = 'EXPORT const T_GSCHEDTBL knl_gschedtbl_table[] = \n{\n'
+        for sched in self.cfg.schedTblList:
+            str += '\tGenSchedTblInfo(%s,'%(sched.name)
+            str += ' %s,'%(sched.owner)
+            str += ' %s,'%(sched.strategy)
+            if(sched.finaldelay > 0):
+                str += ' %s,'%(len(sched.table)+1)
+            else:
+                str += ' %s,'%(len(sched.table))
+            str += ' %s,'%(TRUE(sched.repeatable))
+            str += ' %s,'%(sched.table[len(sched.table)-1].offset + sched.finaldelay)
+            str += ' %s,'%(sched.maxadvance)
+            str += ' %s,'%(sched.maxretard)
+            str += ' %s),\n'%(sched.precision)
+        str += '};\n\n'
+        fp.write(str)
+        fp.close()

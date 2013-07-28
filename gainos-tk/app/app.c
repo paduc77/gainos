@@ -8,35 +8,42 @@
 #include "Os.h"
 #include <stdio.h>
 
-
+int g_counter = 0;
 TASK(vTask0)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    g_counter ++;
+    (void)NextScheduleTable(vSchedTbl_0,vSchedTbl_1);
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask0 is running.\r\n");
-    //ActivateTask(vTask3);
+    (void)NextScheduleTable(vSchedTbl_1,vSchedTbl_0);
     (void)TerminateTask();
 }
 
 TASK(vTask1)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask1 is running.\r\n");
-    //ActivateTask(vTask4);
     (void)TerminateTask();
 }
 
 TASK(vTask2)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask2 is running.\r\n");
-    //ActivateTask(vTask5);
-    ChainTask(vTask0);
     (void)TerminateTask();
 }
 
 TASK(vTask3)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask3 is running.\r\n");
     (void)TerminateTask();
 }
@@ -44,6 +51,8 @@ TASK(vTask3)
 TASK(vTask4)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask4 is running.\r\n");
     (void)TerminateTask();
 }
@@ -51,6 +60,8 @@ TASK(vTask4)
 TASK(vTask5)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
+    (void)WaitEvent(0x01);
+    (void)ClearEvent(0x01);
     printf("vTask5 is running.\r\n");
     (void)TerminateTask();
 }
@@ -59,15 +70,12 @@ TASK(vTaskStart)
 {
     /* Add your task special code here, but Don't delete this Task declaration.*/
     printf("vTaskStart is running.\r\n");
-    GetResource(RES_SCHEDULER);
-    ActivateTask(vTask2);
-    ActivateTask(vTask1);
-    ActivateTask(vTask2);
-    ActivateTask(vTask2);
-    ActivateTask(vTask1);
-    ActivateTask(vTask1);
-    ActivateTask(vTask0);
-    ReleaseResource(RES_SCHEDULER);
+    //(void)StartScheduleTableRel(vSchedTbl_0,50);
+    //(void)StartScheduleTableRel(vSchedTbl_1,100);
+    //while(g_counter < 2);
+    //(void)StopScheduleTable(vSchedTbl_1);
+    StartScheduleTableSynchron(vSchedTbl_0);
+    SyncScheduleTable(vSchedTbl_0,50);
     (void)TerminateTask();
 }
 
@@ -108,5 +116,5 @@ LOCAL char* l_service_id_name_table[] =
 };
 void ErrorHook(StatusType Error)
 {
-    //printf("%s : %s\r\n",l_error_name_table[Error],l_service_id_name_table[OSErrorGetServiceId()]);
+    printf("%s : %s\r\n",l_error_name_table[Error],l_service_id_name_table[OSErrorGetServiceId()]);
 }

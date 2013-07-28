@@ -21,6 +21,7 @@
 #include "portable.h"
 #include "derivative.h"      /* derivative-specific definitions */
 #include "knl_timer.h"
+#include "knl_resource.h"
 
 //system stack malloc
 LOCAL 	UB	knl_system_stack[cfgOS_SYSTEM_STACK_SIZE];
@@ -94,12 +95,12 @@ EXPORT void knl_start_hw_timer( void )
 //when task start to run 
 EXPORT void knl_activate_r(void)
 {
-    /* This is the most easiest Way to get Internal Resourse and
-     * to make a task non-preemtable I think */
     #if(cfgOS_PRE_TASK_HOOK == STD_ON)
     PreTaskHook();
     #endif
-    knl_ctxtsk->priority = knl_ctxtsk->runpri;
+    /* This is the most easiest Way to get Internal Resourse and
+     * to make a task non-preemtable I think */
+    GetInternalResource();
     __asm CLI; // enable interrupt
     knl_ctxtsk->task();
 }
@@ -178,7 +179,7 @@ l_dispatch2:
 	asm   lds  SP_OFFSET,x;       /* Restore 'ssp' from TCB */
 	#endif
     //knl_ctxtsk->tskctxb.dispatcher();
-    asm   jmp  [6,x];
+    asm   jmp  [DSP_OFFSET,x];
 }
 
 //knl_force_dispatch() will be called when the current running task terminate,
@@ -223,13 +224,8 @@ interrupt 7 ISR(SystemTick)
     #if(cfgOS_TK_EXTEND == STD_ON)    
 	//really, the extended feature for OSEK is not advised to be used.
 	knl_timer_handler();
-    #endif
-    #if((cfgOSEK_COUNTER_NUM > 0) && (cfgOSEK_ALARM_NUM > 0))	
+    #endif	
 	(void)IncrementCounter(0);
-	#endif
-    #if(cfgOSEK_COUNTER_NUM > 1)    
-    (void)IncrementCounter(1);
-    #endif
 	ExitISR();	
 }
 #pragma CODE_SEG DEFAULT

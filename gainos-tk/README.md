@@ -62,8 +62,9 @@ gainos-tk
 	+-------+ ComM           <--- Autosar Communication Manager
 	+---+ config             <--- GaInOS-TK及通讯栈模块配置文件集
 	+---+ diag               <--- Autosar 诊断代码集
-	+-------+ Dcm            <--- Autosar Diagnostic Communication Manager(only UDS,no OBD)
-	+---+ ecual              <--- Autosar ECU Abstraction Layer（ECU抽象层） 
+	+-------+ Dcm            <--- Autosar Diagnostic Communication Manager(only UDS,no OBD) 
+	+-------+ Dem
+	+-------+ Det
 	+---+ include            <--- 公用头文件
 	+---+ mcal               <--- Autosar 微控制器抽象层（现仅有CAN模块）
 	+-------+ Can            <--- Autosar Can Driver
@@ -72,6 +73,8 @@ gainos-tk
 	+-------+ src            <--- GaInOS-TK 内核 .c 
 	+-------+ portable       <--- GaInOS-TK 内核移植部分
 	+-------+ test           <--- GaInOS-TK 内核OSEK 符合性测试
+	+---+ system             <--- Autosar 系统
+	+---+ tool               <--- gainos-tk 工具	
 	+---+ toppers_osek       <--- GaInOS-TK 实现时参考的一个os
 	
 # 使用说明
@@ -140,7 +143,20 @@ gainos-tk
 	vTaskIdle任务的原因，暂不支持。
 
 #TODO
-###  1.解决Arm Cortex M7平台现移植必须创建vTaskIdle的问题
+###  1.优化gainos-tk
+######深层次，优化内核代码，优化临界段的处理，解决因内核调度机制多样而导致内核不易被理解的问题。
+	**疑问1**
+	离散TCB成员还是聚合？这个一直是我所思考的问题，到底以何种方式来处理，会获得更好的综合性能，
+	如何来控制CB变量占用的RAM资源至最小化。
+	**疑问2**
+	继承自uTenux的任务队列管理方式是否足够的优秀。是否有必要使用后来扩展的FIFO任务就绪队列来
+	统一管理。
+######发布0.02
+######时间：2013年7月至2013年10月31日
+###  2.基于优化后的gainos-tk，构建符合Autosar OS规范的RTOS。
+######发布0.03
+######时间：2013年11月至2014年9月
+###  3.解决Arm Cortex M7平台现移植必须创建vTaskIdle的问题
 **希望有热心的网友能够给予帮助，个人讨厌研究CPU内核相关的事情**
 
 #gainos-studio 成果展示
